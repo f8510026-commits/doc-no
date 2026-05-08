@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公文取號系統</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --ink: #1a1208;
+    --ink-light: #3d2e10;
+    --parchment: #faf6ee;
+    --parchment-dark: #f0e8d4;
+    --seal: #8b1a1a;
+    --seal-light: #c0392b;
+    --seal-pale: #fce8e8;
+    --gold: #c49a2a;
+    --gold-light: #e8c96a;
+    --jade: #2d6a4f;
+    --jade-light: #40916c;
+    --jade-pale: #e8f5ee;
+    --border: #c4a882;
+    --border-light: #ddd0b8;
+    --shadow: rgba(26,18,8,0.12);
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(196,168,130,0.15) 31px, rgba(196,168,130,0.15) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(196,168,130,0.08) 31px, rgba(196,168,130,0.08) 32px);
+  }
+
+  /* ── Header ── */
+  .site-header {
+    background: var(--ink);
+    color: var(--gold-light);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    box-shadow: 0 2px 8px var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .site-header .logo {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .site-header .logo::before {
+    content: '印';
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    background: var(--seal);
+    color: #fff;
+    font-size: 0.9rem;
+    border-radius: 2px;
+    transform: rotate(-5deg);
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+  }
+  .user-badge {
+    background: rgba(196,154,42,0.2);
+    border: 1px solid var(--gold);
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .btn-logout {
+    background: transparent;
+    border: 1px solid rgba(196,154,42,0.4);
+    color: var(--gold-light);
+    padding: 4px 14px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { background: rgba(196,154,42,0.15); }
+
+  /* ── Layout ── */
+  .app-layout {
+    display: flex;
+    min-height: calc(100vh - 60px);
+  }
+  .sidebar {
+    width: 220px;
+    background: var(--ink-light);
+    padding: 1.5rem 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sidebar-label {
+    color: rgba(196,154,42,0.6);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    padding: 0.5rem 1.2rem 0.3rem;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.2rem;
+    color: rgba(250,246,238,0.7);
+    cursor: pointer;
+    font-size: 0.88rem;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: rgba(196,154,42,0.1); color: var(--gold-light); }
+  .nav-item.active {
+    background: rgba(196,154,42,0.15);
+    color: var(--gold-light);
+    border-left-color: var(--gold);
+  }
+  .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+  .main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 4px var(--shadow);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--parchment-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 1.1em;
+    background: var(--seal);
+    border-radius: 2px;
+  }
+
+  /* ── Forms ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.8rem; font-weight: 500; color: var(--ink-light); letter-spacing: 0.05em; }
+  input, select, textarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.88rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--ink);
+    background: var(--parchment);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--jade-light);
+    box-shadow: 0 0 0 3px rgba(45,106,79,0.12);
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.25rem;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .btn-primary { background: var(--jade); color: #fff; }
+  .btn-primary:hover { background: var(--jade-light); }
+  .btn-danger { background: var(--seal); color: #fff; }
+  .btn-danger:hover { background: var(--seal-light); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-light);
+  }
+  .btn-ghost:hover { background: var(--parchment-dark); }
+  .btn-gold { background: var(--gold); color: #fff; }
+  .btn-gold:hover { background: var(--gold-light); color: var(--ink); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th {
+    background: var(--ink);
+    color: var(--gold-light);
+    padding: 0.6rem 0.9rem;
+    text-align: left;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+  td {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--ink);
+  }
+  tr:hover td { background: var(--jade-pale); }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Badge & Tag ── */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 0.76rem;
+    font-weight: 500;
+  }
+  .tag-admin { background: var(--seal-pale); color: var(--seal); border: 1px solid #f0c0c0; }
+  .tag-user { background: var(--jade-pale); color: var(--jade); border: 1px solid #b0d8c0; }
+  .tag-doc { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+
+  /* ── Doc Number Result ── */
+  .doc-result {
+    background: var(--ink);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1.5rem;
+    display: none;
+  }
+  .doc-result.show { display: block; }
+  .doc-result-label { color: var(--gold-light); font-size: 0.8rem; letter-spacing: 0.15em; margin-bottom: 0.5rem; font-family: 'Noto Serif TC', serif; }
+  .doc-result-number {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 2rem;
+    color: var(--gold-light);
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 20px rgba(196,154,42,0.4);
+  }
+  .doc-result-sub { color: rgba(250,246,238,0.6); font-size: 0.78rem; margin-top: 0.5rem; }
+
+  /* ── Login ── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(196,154,42,0.08) 39px, rgba(196,154,42,0.08) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(196,154,42,0.05) 39px, rgba(196,154,42,0.05) 40px);
+  }
+  .login-box {
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2.5rem;
+    width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .login-seal {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .login-seal .seal-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px; height: 72px;
+    background: var(--seal);
+    border-radius: 50%;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.6rem;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(139,26,26,0.4);
+    margin-bottom: 0.75rem;
+  }
+  .login-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.75rem;
+  }
+  .login-subtitle { font-size: 0.78rem; color: var(--ink-light); text-align: center; margin-bottom: 1.5rem; }
+  .login-box .form-group { margin-bottom: 1rem; }
+  .login-box input {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+  }
+  .btn-login {
+    width: 100%;
+    padding: 0.7rem;
+    background: var(--seal);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.15s;
+  }
+  .btn-login:hover { background: var(--seal-light); }
+  .forgot-link {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--jade);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .forgot-link:hover { color: var(--jade-light); }
+
+  /* ── Alerts ── */
+  .alert {
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .alert.show { display: flex; align-items: flex-start; gap: 0.5rem; }
+  .alert-error { background: var(--seal-pale); color: var(--seal); border: 1px solid #f0c0c0; }
+  .alert-success { background: var(--jade-pale); color: var(--jade); border: 1px solid #b0d8c0; }
+  .alert-info { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: center;
+  }
+  .stat-number { font-size: 2rem; font-family: 'Noto Serif TC', serif; color: var(--seal); font-weight: 700; }
+  .stat-label { font-size: 0.78rem; color: var(--ink-light); margin-top: 0.25rem; }
+
+  /* ── Report ── */
+  .report-row { cursor: pointer; }
+  .report-row:hover td { background: #fff8e8; }
+  .report-link { color: var(--seal); font-weight: 700; text-decoration: underline; cursor: pointer; }
+  .report-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--jade);
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .report-back:hover { color: var(--jade-light); }
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    margin-bottom: 1.25rem;
+  }
+  .breadcrumb span { cursor: pointer; color: var(--jade); }
+  .breadcrumb span:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: var(--border); }
+  .breadcrumb .current { color: var(--ink); cursor: default; }
+
+  /* ── Tag list ── */
+  .tags-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .tag-item {
+    background: var(--jade-pale);
+    color: var(--jade);
+    border: 1px solid #b0d8c0;
+    border-radius: 2px;
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .tag-remove {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--seal);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tag-remove:hover { color: var(--seal-light); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,18,8,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 460px;
+    max-width: 95vw;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+  .modal-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+
+  /* ── Forgot password screen ── */
+  #forgot-screen {
+    display: none;
+  }
+  #forgot-screen.show { display: block; }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .sidebar { width: 180px; }
+    .main-content { padding: 1rem; }
+  }
+
+  .row-actions { display: flex; gap: 0.5rem; }
+  .divider { border: none; border-top: 1px solid var(--border-light); margin: 1.25rem 0; }
+  .text-muted { color: var(--ink-light); font-size: 0.82rem; }
+  .mt-1 { margin-top: 0.5rem; }
+  .mt-2 { margin-top: 1rem; }
+  .flex { display: flex; }
+  .gap-1 { gap: 0.5rem; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ══ Login Screen ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-seal">
+      <div class="seal-circle">印</div>
+    </div>
+    <div class="login-title">公文取號系統</div>
+
+    <!-- Login Form -->
+    <div id="login-form">
+      <div class="alert alert-error" id="login-error"></div>
+      <div class="form-group">
+        <label>登入帳號</label>
+        <input type="text" id="login-account" placeholder="請輸入帳號">
+      </div>
+      <div class="form-group">
+        <label>登入密碼</label>
+        <input type="password" id="login-password" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-login" onclick="doLogin()">登　入</button>
+      <div class="forgot-link" onclick="showForgot()">忘記密碼？</div>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="forgot-screen">
+      <div class="alert alert-error" id="forgot-error"></div>
+      <div class="alert alert-success" id="forgot-success"></div>
+      <div id="forgot-step1">
+        <div class="form-group">
+          <label>請輸入您的帳號</label>
+          <input type="text" id="forgot-account" placeholder="帳號">
+        </div>
+        <div class="form-group">
+          <label>請輸入您的個人信箱</label>
+          <input type="email" id="forgot-email" placeholder="電子信箱">
+        </div>
+        <button class="btn-login" onclick="doForgotVerify()" style="background:var(--jade);">驗　證</button>
+      </div>
+      <div id="forgot-step2" style="display:none;">
+        <div class="form-group">
+          <label>新密碼</label>
+          <input type="password" id="forgot-new-pw" placeholder="請輸入新密碼">
+        </div>
+        <div class="form-group">
+          <label>確認新密碼</label>
+          <input type="password" id="forgot-confirm-pw" placeholder="請再次輸入新密碼">
+        </div>
+        <button class="btn-login" onclick="doResetPassword()" style="background:var(--jade);">重設密碼</button>
+      </div>
+      <div class="forgot-link" onclick="backToLogin()">← 返回登入</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Main App ══ -->
+<div id="app" style="display:none;">
+  <header class="site-header">
+    <div class="logo">公文取號系統</div>
+    <div class="header-right">
+      <div class="user-badge" id="header-user">載入中…</div>
+      <button class="btn-logout" onclick="doLogout()">登出</button>
+    </div>
+  </header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main-content">
+
+      <!-- ── 公文取號 (一般使用者) ── -->
+      <div class="page" id="page-take-number">
+        <div class="card">
+          <div class="card-title">公文取號</div>
+          <div class="alert alert-error" id="take-error"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>公文文號開頭</label>
+              <select id="take-prefix" onchange="loadProjectsForPrefix()">
+                <option value="">— 請選擇 —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>對應專案</label>
+              <select id="take-project">
+                <option value="">— 請選擇 —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>民國年</label>
+              <select id="take-year"></select>
+            </div>
+            <div class="form-group full">
+              <label>發文主旨</label>
+              <textarea id="take-subject" placeholder="請輸入發文主旨…"></textarea>
+            </div>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-primary" onclick="doTakeNumber()">取號</button>
+          </div>
+          <div class="doc-result" id="take-result">
+            <div class="doc-result-label">▪ 公文文號 ▪</div>
+            <div class="doc-result-number" id="take-result-number"></div>
+            <div class="doc-result-sub" id="take-result-sub"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 使用者管理 (管理者) ── -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+            <div class="card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">使用者管理</div>
+            <button class="btn btn-primary" onclick="openUserModal()">＋ 新增使用者</button>
+          </div>
+          <div class="alert alert-success" id="users-success"></div>
+          <div class="alert alert-error" id="users-error"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>姓名</th><th>帳號</th><th>個人信箱</th><th>角色</th><th>操作</th></tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 文號設定 (管理者) ── -->
+      <div class="page" id="page-prefix">
+        <div class="card">
+          <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+            <div class="card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">文號開頭設定</div>
+            <button class="btn btn-primary" onclick="openPrefixModal()">＋ 新增文號開頭</button>
+          </div>
+          <div class="alert alert-success" id="prefix-success"></div>
+          <div class="alert alert-error" id="prefix-error"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>文號開頭</th><th>對應專案</th><th>操作</th></tr>
+              </thead>
+              <tbody id="prefix-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 統計報表 (管理者) ── -->
+      <div class="page" id="page-report">
+        <div class="card">
+          <div class="card-title">統計報表</div>
+          <!-- Level 0: Year selector -->
+          <div id="report-level0">
+            <div class="form-grid" style="grid-template-columns: auto 1fr; align-items:end; gap:1rem; max-width:360px;">
+              <div class="form-group">
+                <label>查詢年度（民國年）</label>
+                <select id="report-year-sel"></select>
+              </div>
+              <button class="btn btn-primary" onclick="loadReport()">查詢</button>
+            </div>
+          </div>
+          <!-- Level 1: prefix totals -->
+          <div id="report-level1" style="display:none;">
+            <div class="breadcrumb">
+              <span onclick="reportGoLevel(0)">年度查詢</span>
+              <span class="sep">›</span>
+              <span class="current" id="bc-year"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>文號開頭</th><th>取號數量</th></tr></thead>
+                <tbody id="report-tbody1"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Level 2: project totals -->
+          <div id="report-level2" style="display:none;">
+            <div class="breadcrumb">
+              <span onclick="reportGoLevel(0)">年度查詢</span>
+              <span class="sep">›</span>
+              <span onclick="reportGoLevel(1)" id="bc-year2"></span>
+              <span class="sep">›</span>
+              <span class="current" id="bc-prefix"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>專案</th><th>取號數量</th></tr></thead>
+                <tbody id="report-tbody2"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Level 3: list -->
+          <div id="report-level3" style="display:none;">
+            <div class="breadcrumb">
+              <span onclick="reportGoLevel(0)">年度查詢</span>
+              <span class="sep">›</span>
+              <span onclick="reportGoLevel(1)" id="bc-year3"></span>
+              <span class="sep">›</span>
+              <span onclick="reportGoLevel(2)" id="bc-prefix3"></span>
+              <span class="sep">›</span>
+              <span class="current" id="bc-project"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>完整文號</th><th>專案</th><th>取號者</th><th>發文主旨</th><th>取號時間</th></tr></thead>
+                <tbody id="report-tbody3"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 個人設定 ── -->
+      <div class="page" id="page-profile">
+        <div class="card">
+          <div class="card-title">個人設定</div>
+          <div class="alert alert-success" id="profile-success"></div>
+          <div class="alert alert-error" id="profile-error"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>姓名</label>
+              <input type="text" id="profile-name">
+            </div>
+            <div class="form-group">
+              <label>帳號（不可修改）</label>
+              <input type="text" id="profile-account" disabled>
+            </div>
+            <div class="form-group full">
+              <label>個人信箱</label>
+              <input type="email" id="profile-email">
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="card-title">修改密碼</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>舊密碼</label>
+              <input type="password" id="profile-old-pw">
+            </div>
+            <div class="form-group"></div>
+            <div class="form-group">
+              <label>新密碼</label>
+              <input type="password" id="profile-new-pw">
+            </div>
+            <div class="form-group">
+              <label>確認新密碼</label>
+              <input type="password" id="profile-confirm-pw">
+            </div>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-primary" onclick="saveProfile()">儲存設定</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ Modal: 使用者 ══ -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <div class="modal-title" id="modal-user-title">新增使用者</div>
+    <div class="alert alert-error" id="modal-user-error"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>姓名 *</label>
+        <input type="text" id="mu-name" placeholder="王小明">
+      </div>
+      <div class="form-group">
+        <label>登入帳號 *</label>
+        <input type="text" id="mu-account" placeholder="abc123">
+      </div>
+      <div class="form-group">
+        <label>登入密碼 *</label>
+        <input type="password" id="mu-password" placeholder="請設定密碼">
+      </div>
+      <div class="form-group">
+        <label>個人信箱 *</label>
+        <input type="email" id="mu-email" placeholder="user@example.com">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeUserModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveUser()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal: 文號 ══ -->
+<div class="modal-overlay" id="modal-prefix">
+  <div class="modal">
+    <div class="modal-title" id="modal-prefix-title">新增文號開頭</div>
+    <div class="alert alert-error" id="modal-prefix-error"></div>
+    <div class="form-group" style="margin-bottom:1rem;">
+      <label>文號開頭（最多三個中文字）*</label>
+      <input type="text" id="mp-prefix" placeholder="例：研發、工程、行政" maxlength="3">
+    </div>
+    <div class="form-group">
+      <label>對應專案（輸入後按 Enter 新增）</label>
+      <input type="text" id="mp-project-input" placeholder="輸入專案名稱後按 Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addProjectTag();}">
+      <div class="tags-list mt-1" id="mp-tags"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePrefixModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePrefix()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  ★ Supabase 設定 — 替換以下兩行即可 ★
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL = 'https://kvhyoiiqqwgpzlsuppkw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2aHlvaWlxcXdncHpsc3VwcGt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMTQxNDIsImV4cCI6MjA5Mzc5MDE0Mn0.LBXbX3_GMU1rPlj6KUw6HTRTtOQ9ZKbmTzoFh0L02uA';
+// ═══════════════════════════════════════════════════
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── State ──
+let currentUser = null;
+let editingUserId = null;
+let editingPrefixId = null;
+let prefixProjects = [];
+let reportState = { year: null, prefix: null, project: null };
+let forgotUserId = null;
+
+// ══════════════════════════════════
+//  Helpers
+// ══════════════════════════════════
+function showAlert(id, msg, type='error') {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `alert alert-${type} show`;
+  setTimeout(() => { el.className = `alert alert-${type}`; }, 4000);
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.className = el.className.replace(' show','');
+}
+function getCurrentRocYear() {
+  return new Date().getFullYear() - 1911;
+}
+function pad4(n) { return String(n).padStart(4,'0'); }
+
+// ══════════════════════════════════
+//  Auth — Login / Logout / Forgot
+// ══════════════════════════════════
+async function doLogin() {
+  const account = document.getElementById('login-account').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!account || !password) { showAlert('login-error','請輸入帳號及密碼'); return; }
+
+  const { data, error } = await db
+    .from('users')
+    .select('*')
+    .eq('account', account)
+    .eq('password', password)
+    .single();
+
+  if (error || !data) { showAlert('login-error','帳號或密碼錯誤'); return; }
+  currentUser = data;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initApp();
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('forgot-screen').className = '';
+  document.getElementById('login-account').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function showForgot() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('forgot-screen').className = 'show';
+  document.getElementById('forgot-step1').style.display = 'block';
+  document.getElementById('forgot-step2').style.display = 'none';
+  forgotUserId = null;
+}
+function backToLogin() {
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('forgot-screen').className = '';
+}
+
+async function doForgotVerify() {
+  const account = document.getElementById('forgot-account').value.trim();
+  const email = document.getElementById('forgot-email').value.trim();
+  hideAlert('forgot-error'); hideAlert('forgot-success');
+  if (!account || !email) { showAlert('forgot-error','請填寫帳號及信箱'); return; }
+
+  const { data, error } = await db
+    .from('users')
+    .select('id, email')
+    .eq('account', account)
+    .single();
+
+  if (error || !data) { showAlert('forgot-error','找不到此帳號'); return; }
+  if (data.email !== email) { showAlert('forgot-error','信箱不符合'); return; }
+
+  forgotUserId = data.id;
+  document.getElementById('forgot-step1').style.display = 'none';
+  document.getElementById('forgot-step2').style.display = 'block';
+}
+
+async function doResetPassword() {
+  const np = document.getElementById('forgot-new-pw').value;
+  const cp = document.getElementById('forgot-confirm-pw').value;
+  hideAlert('forgot-error'); hideAlert('forgot-success');
+  if (!np) { showAlert('forgot-error','請輸入新密碼'); return; }
+  if (np !== cp) { showAlert('forgot-error','兩次密碼不一致'); return; }
+  if (!forgotUserId) { showAlert('forgot-error','驗證失效，請重試'); return; }
+
+  const { error } = await db.from('users').update({ password: np }).eq('id', forgotUserId);
+  if (error) { showAlert('forgot-error','重設失敗：' + error.message); return; }
+  showAlert('forgot-success','密碼重設成功！請重新登入', 'success');
+  setTimeout(backToLogin, 2000);
+}
+
+// ══════════════════════════════════
+//  App Init & Navigation
+// ══════════════════════════════════
+function initApp() {
+  document.getElementById('header-user').textContent = `${currentUser.name}（${currentUser.role === 'admin' ? '管理者' : '一般使用者'}）`;
+  buildSidebar();
+  if (currentUser.role === 'admin') {
+    loadReport_setup();
+    navigateTo('page-users');
+    loadUsers();
+  } else {
+    navigateTo('page-take-number');
+    loadTakeNumberPage();
+  }
+}
+
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let html = '';
+  if (currentUser.role === 'admin') {
+    html += `<div class="sidebar-label">管理功能</div>`;
+    html += nav('page-users','👥','使用者管理');
+    html += nav('page-prefix','🔖','文號開頭設定');
+    html += nav('page-report','📊','統計報表');
+  } else {
+    html += `<div class="sidebar-label">公文作業</div>`;
+    html += nav('page-take-number','📄','公文取號');
+  }
+  html += `<div class="sidebar-label" style="margin-top:auto;">帳號</div>`;
+  html += nav('page-profile','⚙️','個人設定');
+  sidebar.innerHTML = html;
+}
+function nav(page, icon, label) {
+  return `<div class="nav-item" id="nav-${page}" onclick="navigateTo('${page}')">${icon} ${label}</div>`;
+}
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(pageId)?.classList.add('active');
+  document.getElementById('nav-' + pageId)?.classList.add('active');
+
+  if (pageId === 'page-profile') loadProfile();
+  if (pageId === 'page-prefix') loadPrefixes();
+  if (pageId === 'page-users') loadUsers();
+}
+
+// ══════════════════════════════════
+//  Public Doc Numbering 公文取號
+// ══════════════════════════════════
+async function loadTakeNumberPage() {
+  // Year dropdown
+  const cur = getCurrentRocYear();
+  const yearSel = document.getElementById('take-year');
+  yearSel.innerHTML = '';
+  [cur-1, cur, cur+1].forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
+    if (y === cur) opt.selected = true;
+    yearSel.appendChild(opt);
+  });
+  // Prefix dropdown
+  const { data } = await db.from('doc_prefixes').select('*').order('prefix');
+  const sel = document.getElementById('take-prefix');
+  sel.innerHTML = '<option value="">— 請選擇文號開頭 —</option>';
+  (data || []).forEach(row => {
+    const opt = document.createElement('option');
+    opt.value = row.id; opt.textContent = row.prefix;
+    opt.dataset.projects = JSON.stringify(row.projects || []);
+    sel.appendChild(opt);
+  });
+}
+
+function loadProjectsForPrefix() {
+  const sel = document.getElementById('take-prefix');
+  const projSel = document.getElementById('take-project');
+  projSel.innerHTML = '<option value="">— 請選擇專案 —</option>';
+  const selected = sel.options[sel.selectedIndex];
+  if (!selected || !selected.value) return;
+  try {
+    const projects = JSON.parse(selected.dataset.projects || '[]');
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      projSel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function doTakeNumber() {
+  hideAlert('take-error');
+  const prefixSel = document.getElementById('take-prefix');
+  const prefixId = prefixSel.value;
+  const prefixText = prefixSel.options[prefixSel.selectedIndex]?.textContent || '';
+  const project = document.getElementById('take-project').value;
+  const year = parseInt(document.getElementById('take-year').value);
+  const subject = document.getElementById('take-subject').value.trim();
+
+  if (!prefixId) { showAlert('take-error','請選擇文號開頭'); return; }
+  if (!project) { showAlert('take-error','請選擇專案'); return; }
+  if (!subject) { showAlert('take-error','請輸入發文主旨'); return; }
+
+  // Count existing documents with same prefix+year to get next serial
+  const { count } = await db
+    .from('documents')
+    .select('id', { count: 'exact', head: true })
+    .eq('prefix_id', prefixId)
+    .eq('roc_year', year);
+
+  const serial = pad4((count || 0) + 1);
+  const fullNumber = `${prefixText}${year}${serial}`;
+
+  const { error } = await db.from('documents').insert({
+    prefix_id: prefixId,
+    prefix_text: prefixText,
+    project,
+    roc_year: year,
+    serial: parseInt(serial),
+    full_number: fullNumber,
+    subject,
+    created_by: currentUser.id,
+    created_by_name: currentUser.name
+  });
+
+  if (error) { showAlert('take-error','取號失敗：' + error.message); return; }
+
+  const result = document.getElementById('take-result');
+  document.getElementById('take-result-number').textContent = fullNumber;
+  document.getElementById('take-result-sub').textContent = `${project} ｜ ${subject}`;
+  result.classList.add('show');
+
+  // Reset
+  document.getElementById('take-project').value = '';
+  document.getElementById('take-subject').value = '';
+}
+
+// ══════════════════════════════════
+//  Users Management
+// ══════════════════════════════════
+async function loadUsers() {
+  const { data } = await db.from('users').select('*').order('created_at');
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = (data || []).map(u => `
+    <tr>
+      <td>${u.name}</td>
+      <td>${u.account}</td>
+      <td>${u.email || '—'}</td>
+      <td><span class="tag ${u.role==='admin'?'tag-admin':'tag-user'}">${u.role==='admin'?'管理者':'一般使用者'}</span></td>
+      <td class="row-actions">
+        ${u.role !== 'admin' ? `<button class="btn btn-ghost" style="font-size:0.8rem;padding:4px 10px;" onclick="editUser('${u.id}','${u.name}','${u.account}','${u.email||''}')">編輯</button>
+        <button class="btn btn-danger" style="font-size:0.8rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">刪除</button>` : '<span class="text-muted">—</span>'}
+      </td>
+    </tr>`).join('');
+}
+
+function openUserModal(id) {
+  editingUserId = null;
+  document.getElementById('modal-user-title').textContent = '新增使用者';
+  ['mu-name','mu-account','mu-password','mu-email'].forEach(i => document.getElementById(i).value='');
+  document.getElementById('mu-account').disabled = false;
+  document.getElementById('modal-user').classList.add('show');
+}
+function closeUserModal() { document.getElementById('modal-user').classList.remove('show'); }
+
+function editUser(id, name, account, email) {
+  editingUserId = id;
+  document.getElementById('modal-user-title').textContent = '編輯使用者';
+  document.getElementById('mu-name').value = name;
+  document.getElementById('mu-account').value = account;
+  document.getElementById('mu-account').disabled = true;
+  document.getElementById('mu-email').value = email;
+  document.getElementById('mu-password').value = '';
+  document.getElementById('modal-user').classList.add('show');
+}
+
+async function saveUser() {
+  hideAlert('modal-user-error');
+  const name = document.getElementById('mu-name').value.trim();
+  const account = document.getElementById('mu-account').value.trim();
+  const password = document.getElementById('mu-password').value;
+  const email = document.getElementById('mu-email').value.trim();
+  if (!name || !account || !email) { showAlert('modal-user-error','請填寫所有必填欄位'); return; }
+
+  if (editingUserId) {
+    const update = { name, email };
+    if (password) update.password = password;
+    const { error } = await db.from('users').update(update).eq('id', editingUserId);
+    if (error) { showAlert('modal-user-error', error.message); return; }
+  } else {
+    if (!password) { showAlert('modal-user-error','請設定密碼'); return; }
+    // Check duplicate account
+    const { data: exist } = await db.from('users').select('id').eq('account', account).single();
+    if (exist) { showAlert('modal-user-error','此帳號已存在'); return; }
+    const { error } = await db.from('users').insert({ name, account, password, email, role: 'user' });
+    if (error) { showAlert('modal-user-error', error.message); return; }
+  }
+  closeUserModal();
+  loadUsers();
+  showAlert('users-success', editingUserId ? '使用者已更新' : '使用者已新增', 'success');
+}
+
+async function deleteUser(id) {
+  if (!confirm('確定要刪除此使用者？')) return;
+  const { error } = await db.from('users').delete().eq('id', id);
+  if (error) { showAlert('users-error', error.message); return; }
+  loadUsers();
+  showAlert('users-success','使用者已刪除','success');
+}
+
+// ══════════════════════════════════
+//  Prefix Management
+// ══════════════════════════════════
+async function loadPrefixes() {
+  const { data } = await db.from('doc_prefixes').select('*').order('prefix');
+  const tbody = document.getElementById('prefix-tbody');
+  tbody.innerHTML = (data || []).map(r => `
+    <tr>
+      <td><strong>${r.prefix}</strong></td>
+      <td>${(r.projects||[]).map(p=>`<span class="tag tag-doc">${p}</span>`).join(' ')}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost" style="font-size:0.8rem;padding:4px 10px;" onclick="editPrefix('${r.id}','${r.prefix}',${JSON.stringify(JSON.stringify(r.projects||[]))})">編輯</button>
+        <button class="btn btn-danger" style="font-size:0.8rem;padding:4px 10px;" onclick="deletePrefix('${r.id}')">刪除</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openPrefixModal() {
+  editingPrefixId = null;
+  prefixProjects = [];
+  document.getElementById('modal-prefix-title').textContent = '新增文號開頭';
+  document.getElementById('mp-prefix').value = '';
+  document.getElementById('mp-project-input').value = '';
+  document.getElementById('mp-tags').innerHTML = '';
+  document.getElementById('modal-prefix').classList.add('show');
+}
+function closePrefixModal() { document.getElementById('modal-prefix').classList.remove('show'); }
+
+function editPrefix(id, prefix, projectsJson) {
+  editingPrefixId = id;
+  prefixProjects = JSON.parse(JSON.parse(projectsJson));
+  document.getElementById('modal-prefix-title').textContent = '編輯文號開頭';
+  document.getElementById('mp-prefix').value = prefix;
+  document.getElementById('mp-project-input').value = '';
+  renderPrefixTags();
+  document.getElementById('modal-prefix').classList.add('show');
+}
+
+function addProjectTag() {
+  const input = document.getElementById('mp-project-input');
+  const val = input.value.trim();
+  if (!val || prefixProjects.includes(val)) { input.value=''; return; }
+  prefixProjects.push(val);
+  input.value = '';
+  renderPrefixTags();
+}
+function removeTag(idx) {
+  prefixProjects.splice(idx, 1);
+  renderPrefixTags();
+}
+function renderPrefixTags() {
+  document.getElementById('mp-tags').innerHTML = prefixProjects.map((p,i) =>
+    `<div class="tag-item">${p}<span class="tag-remove" onclick="removeTag(${i})">×</span></div>`
+  ).join('');
+}
+
+async function savePrefix() {
+  hideAlert('modal-prefix-error');
+  const prefix = document.getElementById('mp-prefix').value.trim();
+  if (!prefix) { showAlert('modal-prefix-error','請填寫文號開頭'); return; }
+  if ([...prefix].length > 3) { showAlert('modal-prefix-error','文號開頭最多三個中文字'); return; }
+  if (prefixProjects.length === 0) { showAlert('modal-prefix-error','請至少新增一個專案'); return; }
+
+  if (editingPrefixId) {
+    const { error } = await db.from('doc_prefixes').update({ prefix, projects: prefixProjects }).eq('id', editingPrefixId);
+    if (error) { showAlert('modal-prefix-error', error.message); return; }
+  } else {
+    const { error } = await db.from('doc_prefixes').insert({ prefix, projects: prefixProjects });
+    if (error) { showAlert('modal-prefix-error', error.message); return; }
+  }
+  closePrefixModal();
+  loadPrefixes();
+  showAlert('prefix-success', editingPrefixId ? '文號已更新' : '文號已新增', 'success');
+}
+
+async function deletePrefix(id) {
+  if (!confirm('確定刪除此文號開頭？')) return;
+  const { error } = await db.from('doc_prefixes').delete().eq('id', id);
+  if (error) { showAlert('prefix-error', error.message); return; }
+  loadPrefixes();
+  showAlert('prefix-success','文號開頭已刪除','success');
+}
+
+// ══════════════════════════════════
+//  Report
+// ══════════════════════════════════
+function loadReport_setup() {
+  const cur = getCurrentRocYear();
+  const sel = document.getElementById('report-year-sel');
+  sel.innerHTML = '';
+  for (let y = cur + 1; y >= cur - 5; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
+    if (y === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function reportShowLevel(n) {
+  [0,1,2,3].forEach(i => document.getElementById(`report-level${i}`).style.display = i===n?'block':'none');
+}
+function reportGoLevel(n) {
+  reportShowLevel(n);
+}
+
+async function loadReport() {
+  const year = parseInt(document.getElementById('report-year-sel').value);
+  reportState.year = year;
+  const { data } = await db.from('documents').select('prefix_text, project, full_number, subject, created_by_name').eq('roc_year', year);
+  const docs = data || [];
+
+  // Group by prefix
+  const byPrefix = {};
+  docs.forEach(d => {
+    if (!byPrefix[d.prefix_text]) byPrefix[d.prefix_text] = [];
+    byPrefix[d.prefix_text].push(d);
+  });
+
+  document.getElementById('bc-year').textContent = `民國 ${year} 年`;
+  const tbody = document.getElementById('report-tbody1');
+  tbody.innerHTML = '';
+  if (Object.keys(byPrefix).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-light);">本年度無公文記錄</td></tr>';
+  } else {
+    Object.entries(byPrefix).forEach(([prefix, arr]) => {
+      const tr = document.createElement('tr');
+      tr.className = 'report-row';
+      tr.innerHTML = `<td>${prefix}</td><td><span class="report-link">${arr.length}</span></td>`;
+      tr.querySelector('.report-link').onclick = () => loadReportLevel2(prefix, arr, year);
+      tbody.appendChild(tr);
+    });
+  }
+  reportShowLevel(1);
+}
+
+function loadReportLevel2(prefix, docs, year) {
+  reportState.prefix = prefix;
+  const byProject = {};
+  docs.forEach(d => {
+    if (!byProject[d.project]) byProject[d.project] = [];
+    byProject[d.project].push(d);
+  });
+
+  document.getElementById('bc-year2').textContent = `民國 ${year} 年`;
+  document.getElementById('bc-prefix').textContent = prefix;
+  const tbody = document.getElementById('report-tbody2');
+  tbody.innerHTML = '';
+  Object.entries(byProject).forEach(([project, arr]) => {
+    const tr = document.createElement('tr');
+    tr.className = 'report-row';
+    tr.innerHTML = `<td>${project}</td><td><span class="report-link">${arr.length}</span></td>`;
+    tr.querySelector('.report-link').onclick = () => loadReportLevel3(project, arr, year, prefix);
+    tbody.appendChild(tr);
+  });
+  reportShowLevel(2);
+}
+
+async function loadReportLevel3(project, docs, year, prefix) {
+  reportState.project = project;
+  document.getElementById('bc-year3').textContent = `民國 ${year} 年`;
+  document.getElementById('bc-prefix3').textContent = prefix;
+  document.getElementById('bc-project').textContent = project;
+
+  // Fetch full records
+  const { data } = await db.from('documents')
+    .select('full_number, project, created_by_name, subject, created_at')
+    .eq('roc_year', year)
+    .eq('prefix_text', prefix)
+    .eq('project', project)
+    .order('serial');
+
+  const tbody = document.getElementById('report-tbody3');
+  tbody.innerHTML = (data || []).map(d => `
+    <tr>
+      <td><strong>${d.full_number}</strong></td>
+      <td>${d.project}</td>
+      <td>${d.created_by_name || '—'}</td>
+      <td>${d.subject}</td>
+      <td>${new Date(d.created_at).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>`).join('');
+  reportShowLevel(3);
+}
+
+// ══════════════════════════════════
+//  Profile
+// ══════════════════════════════════
+function loadProfile() {
+  document.getElementById('profile-name').value = currentUser.name || '';
+  document.getElementById('profile-account').value = currentUser.account || '';
+  document.getElementById('profile-email').value = currentUser.email || '';
+  document.getElementById('profile-old-pw').value = '';
+  document.getElementById('profile-new-pw').value = '';
+  document.getElementById('profile-confirm-pw').value = '';
+}
+
+async function saveProfile() {
+  hideAlert('profile-error'); hideAlert('profile-success');
+  const name = document.getElementById('profile-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  const oldPw = document.getElementById('profile-old-pw').value;
+  const newPw = document.getElementById('profile-new-pw').value;
+  const confirmPw = document.getElementById('profile-confirm-pw').value;
+
+  if (!name || !email) { showAlert('profile-error','姓名及信箱為必填'); return; }
+
+  const update = { name, email };
+
+  if (oldPw || newPw || confirmPw) {
+    if (oldPw !== currentUser.password) { showAlert('profile-error','舊密碼不正確'); return; }
+    if (!newPw) { showAlert('profile-error','請輸入新密碼'); return; }
+    if (newPw !== confirmPw) { showAlert('profile-error','兩次新密碼不一致'); return; }
+    update.password = newPw;
+  }
+
+  const { error } = await db.from('users').update(update).eq('id', currentUser.id);
+  if (error) { showAlert('profile-error', error.message); return; }
+  Object.assign(currentUser, update);
+  document.getElementById('header-user').textContent = `${currentUser.name}（${currentUser.role==='admin'?'管理者':'一般使用者'}）`;
+  showAlert('profile-success','個人設定已儲存','success');
+}
+
+// ── Validate Supabase config ──
+if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+  document.getElementById('login-screen').innerHTML = `
+    <div style="text-align:center;color:#faf6ee;padding:2rem;">
+      <div style="font-size:3rem;margin-bottom:1rem;">⚙️</div>
+      <div style="font-family:'Noto Serif TC',serif;font-size:1.3rem;color:#e8c96a;margin-bottom:1rem;">尚未設定 Supabase</div>
+      <div style="font-size:0.9rem;color:rgba(250,246,238,0.7);line-height:1.8;">
+        請在 HTML 原始碼中找到以下兩行並填入您的 Supabase 設定：<br><br>
+        <code style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;display:block;margin:4px 0;">const SUPABASE_URL = 'YOUR_SUPABASE_URL';</code>
+        <code style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;display:block;margin:4px 0;">const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';</code>
+        <br>
+        並依照下方 SQL 建立資料表後即可使用
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>
