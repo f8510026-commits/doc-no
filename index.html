@@ -168,6 +168,7 @@
     background: var(--parchment);
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
+    width: 100%;
   }
   input:focus, select:focus, textarea:focus {
     border-color: var(--jade-light);
@@ -176,6 +177,30 @@
   }
   input:disabled { opacity: 0.6; cursor: not-allowed; background: var(--parchment-dark); }
   textarea { resize: vertical; min-height: 80px; }
+
+  /* ── 密碼欄位小眼睛 ── */
+  .pw-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .pw-wrap input {
+    padding-right: 2.4rem;
+  }
+  .pw-toggle {
+    position: absolute;
+    right: 0.6rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-light);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    transition: color 0.15s;
+  }
+  .pw-toggle:hover { color: var(--jade); }
 
   .btn {
     display: inline-flex;
@@ -249,7 +274,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 2.5rem;
-    width: 360px;
+    width: 380px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
   .login-seal { text-align: center; margin-bottom: 1.5rem; }
@@ -276,7 +301,6 @@
     margin-bottom: 1.75rem;
   }
   .login-box .form-group { margin-bottom: 1rem; }
-  .login-box input { width: 100%; padding: 0.65rem 0.75rem; }
   .btn-login {
     width: 100%;
     padding: 0.7rem;
@@ -306,6 +330,7 @@
   .alert-error { background: var(--seal-pale); color: var(--seal); border: 1px solid #f0c0c0; }
   .alert-success { background: var(--jade-pale); color: var(--jade); border: 1px solid #b0d8c0; }
 
+  /* ── Modal（加大） ── */
   .modal-overlay { position: fixed; inset: 0; background: rgba(26,18,8,0.6); display: none; align-items: center; justify-content: center; z-index: 500; }
   .modal-overlay.show { display: flex; }
   .modal {
@@ -313,8 +338,10 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 2rem;
-    width: 460px;
+    width: 560px;        /* ← 加寬 */
     max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 8px 40px rgba(0,0,0,0.4);
   }
   .modal-title { font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-light); }
@@ -386,8 +413,11 @@
       </div>
       <div class="form-group">
         <label>登入密碼</label>
-        <input type="password" id="login-password" placeholder="請輸入密碼"
-          onkeydown="if(event.key==='Enter') doLogin()">
+        <div class="pw-wrap">
+          <input type="password" id="login-password" placeholder="請輸入密碼"
+            onkeydown="if(event.key==='Enter') doLogin()">
+          <button type="button" class="pw-toggle" onclick="togglePw('login-password', this)">👁</button>
+        </div>
       </div>
       <button class="btn-login" id="btn-login" onclick="doLogin()">登　入</button>
       <div class="forgot-link" onclick="showForgot()">忘記密碼？</div>
@@ -410,11 +440,17 @@
       <div id="forgot-step2" style="display:none;">
         <div class="form-group">
           <label>新密碼</label>
-          <input type="password" id="forgot-new-pw" placeholder="請輸入新密碼">
+          <div class="pw-wrap">
+            <input type="password" id="forgot-new-pw" placeholder="請輸入新密碼">
+            <button type="button" class="pw-toggle" onclick="togglePw('forgot-new-pw', this)">👁</button>
+          </div>
         </div>
         <div class="form-group">
           <label>確認新密碼</label>
-          <input type="password" id="forgot-confirm-pw" placeholder="請再次輸入">
+          <div class="pw-wrap">
+            <input type="password" id="forgot-confirm-pw" placeholder="請再次輸入">
+            <button type="button" class="pw-toggle" onclick="togglePw('forgot-confirm-pw', this)">👁</button>
+          </div>
         </div>
         <button class="btn-login" onclick="doResetPassword()" style="background:var(--jade);">重設密碼</button>
       </div>
@@ -436,7 +472,7 @@
     <nav class="sidebar" id="sidebar"></nav>
     <main class="main-content">
 
-      <!-- 公文取號（管理者與一般使用者共用） -->
+      <!-- 公文取號 -->
       <div class="page" id="page-take-number">
         <div class="card">
           <div class="card-title">公文取號</div>
@@ -596,16 +632,25 @@
           <div class="form-grid">
             <div class="form-group">
               <label>舊密碼</label>
-              <input type="password" id="profile-old-pw">
+              <div class="pw-wrap">
+                <input type="password" id="profile-old-pw">
+                <button type="button" class="pw-toggle" onclick="togglePw('profile-old-pw', this)">👁</button>
+              </div>
             </div>
             <div class="form-group"></div>
             <div class="form-group">
               <label>新密碼</label>
-              <input type="password" id="profile-new-pw">
+              <div class="pw-wrap">
+                <input type="password" id="profile-new-pw">
+                <button type="button" class="pw-toggle" onclick="togglePw('profile-new-pw', this)">👁</button>
+              </div>
             </div>
             <div class="form-group">
               <label>確認新密碼</label>
-              <input type="password" id="profile-confirm-pw">
+              <div class="pw-wrap">
+                <input type="password" id="profile-confirm-pw">
+                <button type="button" class="pw-toggle" onclick="togglePw('profile-confirm-pw', this)">👁</button>
+              </div>
             </div>
           </div>
           <div class="mt-2">
@@ -634,7 +679,10 @@
       </div>
       <div class="form-group">
         <label>登入密碼 *</label>
-        <input type="password" id="mu-password" placeholder="請設定密碼">
+        <div class="pw-wrap">
+          <input type="password" id="mu-password" placeholder="請設定密碼">
+          <button type="button" class="pw-toggle" onclick="togglePw('mu-password', this)">👁</button>
+        </div>
       </div>
       <div class="form-group">
         <label>個人信箱 *</label>
@@ -681,7 +729,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── State ──
+const REPORT_YEAR_MIN = 115;
+
 let currentUser = null;
 let editingUserId = null;
 let editingPrefixId = null;
@@ -689,9 +738,6 @@ let prefixProjects = [];
 let reportCache = { year: null, docs: [] };
 let reportCurrentPrefix = null;
 let forgotAuthId = null;
-
-// ── 年度常數 ──
-const REPORT_YEAR_MIN = 115;   // 統計報表最早年度固定為民國115年
 
 // ══════════════════════════════════
 //  Helpers
@@ -710,12 +756,20 @@ function hideAlert(id) {
 function getRocYear() { return new Date().getFullYear() - 1911; }
 function pad4(n) { return String(n).padStart(4, '0'); }
 function toAuthEmail(account) { return `${account}@system.local`; }
-
 function setBtn(id, loading, label) {
   const btn = document.getElementById(id);
   if (!btn) return;
   btn.disabled = loading;
   btn.innerHTML = loading ? `<span class="spinner"></span> 處理中…` : label;
+}
+
+// ── 小眼睛切換 ──
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
 }
 
 // ══════════════════════════════════
@@ -725,15 +779,12 @@ async function doLogin() {
   const account = document.getElementById('login-account').value.trim();
   const password = document.getElementById('login-password').value;
   if (!account || !password) { showAlert('login-error', '請輸入帳號及密碼'); return; }
-
   hideAlert('login-error');
   setBtn('btn-login', true, '登　入');
 
   const { data: authData, error: authErr } = await db.auth.signInWithPassword({
-    email: toAuthEmail(account),
-    password
+    email: toAuthEmail(account), password
   });
-
   if (authErr) {
     setBtn('btn-login', false, '登　入');
     showAlert('login-error', '帳號或密碼錯誤');
@@ -742,7 +793,6 @@ async function doLogin() {
 
   const { data: userData, error: userErr } = await db
     .from('users').select('*').eq('auth_id', authData.user.id).single();
-
   if (userErr || !userData) {
     await db.auth.signOut();
     setBtn('btn-login', false, '登　入');
@@ -768,7 +818,6 @@ async function doLogout() {
   document.getElementById('login-password').value = '';
 }
 
-// ── Forgot Password ──
 function showForgot() {
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('forgot-screen').className = 'show';
@@ -789,7 +838,6 @@ async function doForgotVerify() {
 
   const { data, error } = await db.from('users')
     .select('auth_id, email').eq('account', account).single();
-
   if (error || !data) { showAlert('forgot-error', '找不到此帳號'); return; }
   if (data.email !== email) { showAlert('forgot-error', '信箱與帳號不符'); return; }
 
@@ -807,10 +855,8 @@ async function doResetPassword() {
   if (!forgotAuthId) { showAlert('forgot-error', '驗證失效，請重新操作'); return; }
 
   const { data, error } = await db.rpc('reset_user_password', {
-    p_auth_id: forgotAuthId,
-    p_password: np
+    p_auth_id: forgotAuthId, p_password: np
   });
-
   if (error || !data?.success) {
     showAlert('forgot-error', '重設失敗：' + (data?.error || error?.message));
     return;
@@ -826,14 +872,9 @@ function initApp() {
   document.getElementById('header-user').textContent =
     `${currentUser.name}（${currentUser.role === 'admin' ? '管理者' : '一般使用者'}）`;
   buildSidebar();
-  if (currentUser.role === 'admin') {
-    setupReportYearSel();
-    navigateTo('page-take-number'); // ← 管理者預設也進公文取號
-    loadTakeNumberPage();
-  } else {
-    navigateTo('page-take-number');
-    loadTakeNumberPage();
-  }
+  if (currentUser.role === 'admin') setupReportYearSel();
+  navigateTo('page-take-number');
+  loadTakeNumberPage();
 }
 
 function buildSidebar() {
@@ -853,7 +894,6 @@ function buildSidebar() {
   html += nav('page-profile', '⚙️', '個人設定');
   document.getElementById('sidebar').innerHTML = html;
 }
-
 function nav(page, icon, label) {
   return `<div class="nav-item" id="nav-${page}" onclick="navigateTo('${page}')">${icon} ${label}</div>`;
 }
@@ -863,30 +903,30 @@ function navigateTo(pageId) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(pageId)?.classList.add('active');
   document.getElementById('nav-' + pageId)?.classList.add('active');
+
+  // ── 每次切換頁面時重新載入資料 ──
   if (pageId === 'page-profile') loadProfile();
   if (pageId === 'page-prefix') loadPrefixes();
   if (pageId === 'page-users') loadUsers();
+  if (pageId === 'page-take-number') loadTakeNumberPage();   // ← 每次進入都重新抓最新文號清單
+  if (pageId === 'page-report') resetReport();               // ← 每次進入都清空報表
 }
 
 // ══════════════════════════════════
-//  公文取號（管理者與一般使用者共用）
+//  公文取號
 // ══════════════════════════════════
 async function loadTakeNumberPage() {
   const cur = getRocYear();
   const yearSel = document.getElementById('take-year');
   yearSel.innerHTML = '';
-
-  // 較舊的年度在上方，較新的在下方
-  // 範圍：當年度前後各一年，共三個選項，由舊到新排列
-  const years = [cur - 1, cur, cur + 1];
-  years.forEach(y => {
+  [cur - 1, cur, cur + 1].forEach(y => {
     const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = `民國 ${y} 年`;
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
     if (y === cur) opt.selected = true;
     yearSel.appendChild(opt);
   });
 
+  // ── 每次都重新從資料庫抓最新文號清單 ──
   const { data } = await db.from('doc_prefixes').select('*').order('prefix');
   const sel = document.getElementById('take-prefix');
   sel.innerHTML = '<option value="">— 請選擇文號開頭 —</option>';
@@ -898,9 +938,10 @@ async function loadTakeNumberPage() {
     sel.appendChild(opt);
   });
 
-  // 清除上次取號結果
-  document.getElementById('take-result').classList.remove('show');
   document.getElementById('take-project').innerHTML = '<option value="">— 請選擇 —</option>';
+  document.getElementById('take-subject').value = '';
+  document.getElementById('take-result').classList.remove('show');
+  hideAlert('take-error');
 }
 
 function loadProjectsForPrefix() {
@@ -935,30 +976,20 @@ async function doTakeNumber() {
   setBtn('btn-take', true, '取　號');
 
   const { data: existing } = await db
-    .from('documents')
-    .select('serial')
-    .eq('prefix_id', prefixId)
-    .eq('roc_year', year)
-    .order('serial', { ascending: false })
-    .limit(1);
+    .from('documents').select('serial')
+    .eq('prefix_id', prefixId).eq('roc_year', year)
+    .order('serial', { ascending: false }).limit(1);
 
   const nextSerial = (existing && existing.length > 0) ? existing[0].serial + 1 : 1;
   const fullNumber = `${prefixText}${year}${pad4(nextSerial)}`;
 
   const { error } = await db.from('documents').insert({
-    prefix_id: prefixId,
-    prefix_text: prefixText,
-    project,
-    roc_year: year,
-    serial: nextSerial,
-    full_number: fullNumber,
-    subject,
-    created_by: currentUser.id,
-    created_by_name: currentUser.name
+    prefix_id: prefixId, prefix_text: prefixText, project,
+    roc_year: year, serial: nextSerial, full_number: fullNumber,
+    subject, created_by: currentUser.id, created_by_name: currentUser.name
   });
 
   setBtn('btn-take', false, '取　號');
-
   if (error) { showAlert('take-error', '取號失敗：' + error.message); return; }
 
   document.getElementById('take-result-number').textContent = fullNumber;
@@ -993,7 +1024,10 @@ async function loadUsers() {
 function openUserModal() {
   editingUserId = null;
   document.getElementById('modal-user-title').textContent = '新增使用者';
-  ['mu-name', 'mu-account', 'mu-password', 'mu-email'].forEach(i => document.getElementById(i).value = '');
+  ['mu-name', 'mu-account', 'mu-email'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('mu-password').value = '';
+  document.getElementById('mu-password').type = 'password';
+  document.querySelector('#modal-user .pw-toggle').textContent = '👁';
   document.getElementById('mu-account').disabled = false;
   hideAlert('modal-user-error');
   document.getElementById('modal-user').classList.add('show');
@@ -1008,6 +1042,8 @@ function editUser(id, name, account, email, authId) {
   document.getElementById('mu-account').disabled = true;
   document.getElementById('mu-email').value = email;
   document.getElementById('mu-password').value = '';
+  document.getElementById('mu-password').type = 'password';
+  document.querySelector('#modal-user .pw-toggle').textContent = '👁';
   hideAlert('modal-user-error');
   document.getElementById('modal-user').classList.add('show');
 }
@@ -1070,9 +1106,9 @@ async function loadPrefixes() {
       <td>${(r.projects || []).map(p => `<span class="tag tag-doc">${p}</span>`).join(' ')}</td>
       <td class="row-actions">
         <button class="btn btn-ghost" style="font-size:0.8rem;padding:4px 10px;"
-          onclick="editPrefix('${r.id}','${r.prefix}',${JSON.stringify(JSON.stringify(r.projects || []))})">編輯</button>
+          onclick="editPrefix(${JSON.stringify(r.id)}, ${JSON.stringify(r.prefix)}, ${JSON.stringify(r.projects || [])})">編輯</button>
         <button class="btn btn-danger" style="font-size:0.8rem;padding:4px 10px;"
-          onclick="deletePrefix('${r.id}')">刪除</button>
+          onclick="deletePrefix(${JSON.stringify(r.id)})">刪除</button>
       </td>
     </tr>`).join('');
 }
@@ -1089,9 +1125,10 @@ function openPrefixModal() {
 }
 function closePrefixModal() { document.getElementById('modal-prefix').classList.remove('show'); }
 
-function editPrefix(id, prefix, projectsJson) {
+// ── 修正：直接接收物件，不再用字串序列化傳遞 ──
+function editPrefix(id, prefix, projects) {
   editingPrefixId = id;
-  prefixProjects = JSON.parse(JSON.parse(projectsJson));
+  prefixProjects = Array.isArray(projects) ? [...projects] : [];
   document.getElementById('modal-prefix-title').textContent = '編輯文號開頭';
   document.getElementById('mp-prefix').value = prefix;
   document.getElementById('mp-project-input').value = '';
@@ -1123,7 +1160,8 @@ async function savePrefix() {
   if (prefixProjects.length === 0) { showAlert('modal-prefix-error', '請至少新增一個專案'); return; }
 
   if (editingPrefixId) {
-    const { error } = await db.from('doc_prefixes').update({ prefix, projects: prefixProjects }).eq('id', editingPrefixId);
+    const { error } = await db.from('doc_prefixes')
+      .update({ prefix, projects: prefixProjects }).eq('id', editingPrefixId);
     if (error) { showAlert('modal-prefix-error', error.message); return; }
   } else {
     const { error } = await db.from('doc_prefixes').insert({ prefix, projects: prefixProjects });
@@ -1149,17 +1187,23 @@ function setupReportYearSel() {
   const cur = getRocYear();
   const sel = document.getElementById('report-year-sel');
   sel.innerHTML = '';
-
-  // 最早固定為民國115年，最晚為當年度+1
-  // 較舊的年度在上方，較新的在下方（當年度預設選中）
-  const maxYear = cur + 1;
-  for (let y = REPORT_YEAR_MIN; y <= maxYear; y++) {
+  for (let y = REPORT_YEAR_MIN; y <= cur + 1; y++) {
     const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = `民國 ${y} 年`;
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
     if (y === cur) opt.selected = true;
     sel.appendChild(opt);
   }
+}
+
+// ── 每次切換到報表頁時清空，回到年度選擇畫面 ──
+function resetReport() {
+  reportCache = { year: null, docs: [] };
+  reportCurrentPrefix = null;
+  reportShowLevel(0);
+  // 重設年度選單回當年度
+  const cur = getRocYear();
+  const sel = document.getElementById('report-year-sel');
+  if (sel) sel.value = cur;
 }
 
 function reportShowLevel(n) {
@@ -1241,8 +1285,11 @@ function loadProfile() {
   document.getElementById('profile-name').value = currentUser.name || '';
   document.getElementById('profile-account').value = currentUser.account || '';
   document.getElementById('profile-email').value = currentUser.email || '';
-  ['profile-old-pw', 'profile-new-pw', 'profile-confirm-pw']
-    .forEach(id => document.getElementById(id).value = '');
+  ['profile-old-pw', 'profile-new-pw', 'profile-confirm-pw'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.type = 'password'; }
+  });
+  document.querySelectorAll('#page-profile .pw-toggle').forEach(b => b.textContent = '👁');
 }
 
 async function saveProfile() {
