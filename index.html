@@ -1002,9 +1002,14 @@ async function doTakeNumber() {
 // ══════════════════════════════════
 //  使用者管理
 // ══════════════════════════════════
+let userDataMap = {};
+
 async function loadUsers() {
   const { data } = await db.from('users').select('*').order('created_at');
-  document.getElementById('users-tbody').innerHTML = (data || []).map(u => `
+  userDataMap = {};
+  document.getElementById('users-tbody').innerHTML = (data || []).map(u => {
+    userDataMap[u.id] = u;
+    return `
     <tr>
       <td>${u.name}</td>
       <td>${u.account}</td>
@@ -1013,12 +1018,19 @@ async function loadUsers() {
       <td class="row-actions">
         ${u.role !== 'admin'
           ? `<button class="btn btn-ghost" style="font-size:0.8rem;padding:4px 10px;"
-               onclick="editUser('${u.id}','${u.name}','${u.account}','${u.email || ''}','${u.auth_id}')">編輯</button>
+               data-id="${u.id}" onclick="editUserById(this.dataset.id)">編輯</button>
              <button class="btn btn-danger" style="font-size:0.8rem;padding:4px 10px;"
-               onclick="deleteUser('${u.id}')">刪除</button>`
+               data-id="${u.id}" onclick="deleteUser(this.dataset.id)">刪除</button>`
           : '<span class="text-muted">—</span>'}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+}
+
+function editUserById(id) {
+  const u = userDataMap[id];
+  if (!u) return;
+  editUser(u.id, u.name, u.account, u.email || '', u.auth_id);
 }
 
 function openUserModal() {
@@ -1098,19 +1110,36 @@ async function deleteUser(id) {
 // ══════════════════════════════════
 //  文號設定
 // ══════════════════════════════════
+// 用 Map 儲存文號資料，避免 onclick 字串傳遞問題
+let prefixDataMap = {};
+
 async function loadPrefixes() {
   const { data } = await db.from('doc_prefixes').select('*').order('prefix');
-  document.getElementById('prefix-tbody').innerHTML = (data || []).map(r => `
+  prefixDataMap = {};
+  document.getElementById('prefix-tbody').innerHTML = (data || []).map(r => {
+    prefixDataMap[r.id] = { id: r.id, prefix: r.prefix, projects: r.projects || [] };
+    return `
     <tr>
       <td><strong>${r.prefix}</strong></td>
       <td>${(r.projects || []).map(p => `<span class="tag tag-doc">${p}</span>`).join(' ')}</td>
       <td class="row-actions">
         <button class="btn btn-ghost" style="font-size:0.8rem;padding:4px 10px;"
-          onclick="editPrefix(${JSON.stringify(r.id)}, ${JSON.stringify(r.prefix)}, ${JSON.stringify(r.projects || [])})">編輯</button>
+          data-id="${r.id}" onclick="editPrefixById(this.dataset.id)">編輯</button>
         <button class="btn btn-danger" style="font-size:0.8rem;padding:4px 10px;"
-          onclick="deletePrefix(${JSON.stringify(r.id)})">刪除</button>
+          data-id="${r.id}" onclick="deletePrefixById(this.dataset.id)">刪除</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+}
+
+function editPrefixById(id) {
+  const r = prefixDataMap[id];
+  if (!r) return;
+  editPrefix(r.id, r.prefix, r.projects);
+}
+
+async function deletePrefixById(id) {
+  await deletePrefix(id);
 }
 
 function openPrefixModal() {
