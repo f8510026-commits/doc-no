@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一組公文取號系統</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --ink:#1a1208; --ink-light:#3d2e10; --parchment:#faf6ee; --parchment-dark:#f0e8d4;
+    --seal:#8b1a1a; --seal-light:#c0392b; --seal-pale:#fce8e8;
+    --gold:#c49a2a; --gold-light:#e8c96a;
+    --jade:#2d6a4f; --jade-light:#40916c; --jade-pale:#e8f5ee;
+    --border:#c4a882; --border-light:#ddd0b8; --shadow:rgba(26,18,8,0.12); --radius:4px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--parchment);color:var(--ink);min-height:100vh;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(196,168,130,0.15) 31px,rgba(196,168,130,0.15) 32px),
+    repeating-linear-gradient(90deg,transparent,transparent 31px,rgba(196,168,130,0.08) 31px,rgba(196,168,130,0.08) 32px);}
+  .site-header{background:var(--ink);color:var(--gold-light);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 8px var(--shadow);position:sticky;top:0;z-index:100;}
+  .site-header .logo{font-family:'Noto Serif TC',serif;font-size:1.15rem;font-weight:700;letter-spacing:.1em;display:flex;align-items:center;gap:.6rem;}
+  .site-header .logo::before{content:'印';display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--seal);color:#fff;font-size:.9rem;border-radius:2px;transform:rotate(-5deg);}
+  .header-right{display:flex;align-items:center;gap:1rem;font-size:.85rem;}
+  .user-badge{background:rgba(196,154,42,.2);border:1px solid var(--gold);padding:4px 12px;border-radius:2px;font-family:'Noto Serif TC',serif;}
+  .btn-logout{background:transparent;border:1px solid rgba(196,154,42,.4);color:var(--gold-light);padding:4px 14px;border-radius:2px;cursor:pointer;font-size:.82rem;transition:all .2s;}
+  .btn-logout:hover{background:rgba(196,154,42,.15);}
+  .app-layout{display:flex;min-height:calc(100vh - 60px);}
+  .sidebar{width:220px;background:var(--ink-light);padding:1.5rem 0;flex-shrink:0;display:flex;flex-direction:column;gap:2px;}
+  .sidebar-label{color:rgba(196,154,42,.6);font-size:.7rem;letter-spacing:.15em;padding:.5rem 1.2rem .3rem;text-transform:uppercase;}
+  .nav-item{display:flex;align-items:center;gap:.6rem;padding:.65rem 1.2rem;color:rgba(250,246,238,.7);cursor:pointer;font-size:.88rem;border-left:3px solid transparent;transition:all .15s;}
+  .nav-item:hover{background:rgba(196,154,42,.1);color:var(--gold-light);}
+  .nav-item.active{background:rgba(196,154,42,.15);color:var(--gold-light);border-left-color:var(--gold);}
+  .main-content{flex:1;padding:2rem;overflow-y:auto;}
+  .card{background:#fff;border:1px solid var(--border-light);border-radius:var(--radius);box-shadow:0 1px 4px var(--shadow);padding:1.75rem;margin-bottom:1.5rem;}
+  .card-title{font-family:'Noto Serif TC',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid var(--parchment-dark);display:flex;align-items:center;gap:.5rem;}
+  .card-title::before{content:'';display:inline-block;width:4px;height:1.1em;background:var(--seal);border-radius:2px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .form-group{display:flex;flex-direction:column;gap:.4rem;}
+  .form-group.full{grid-column:1/-1;}
+  label{font-size:.8rem;font-weight:500;color:var(--ink-light);letter-spacing:.05em;}
+  input,select,textarea{border:1px solid var(--border);border-radius:var(--radius);padding:.5rem .75rem;font-size:.88rem;font-family:'Noto Sans TC',sans-serif;color:var(--ink);background:var(--parchment);transition:border-color .15s,box-shadow .15s;outline:none;width:100%;}
+  input:focus,select:focus,textarea:focus{border-color:var(--jade-light);box-shadow:0 0 0 3px rgba(45,106,79,.12);background:#fff;}
+  input:disabled{opacity:.6;cursor:not-allowed;background:var(--parchment-dark);}
+  textarea{resize:vertical;min-height:80px;}
+  .pw-wrap{position:relative;display:flex;align-items:center;}
+  .pw-wrap input{padding-right:2.4rem;}
+  .pw-toggle{position:absolute;right:.6rem;background:none;border:none;cursor:pointer;color:var(--ink-light);padding:0;display:flex;align-items:center;font-size:1rem;transition:color .15s;}
+  .pw-toggle:hover{color:var(--jade);}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.55rem 1.25rem;border-radius:var(--radius);font-size:.88rem;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:'Noto Sans TC',sans-serif;}
+  .btn-primary{background:var(--jade);color:#fff;} .btn-primary:hover{background:var(--jade-light);}
+  .btn-danger{background:var(--seal);color:#fff;} .btn-danger:hover{background:var(--seal-light);}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink-light);} .btn-ghost:hover{background:var(--parchment-dark);}
+  .btn-warning{background:#d97706;color:#fff;} .btn-warning:hover{background:#b45309;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.875rem;}
+  th{background:var(--ink);color:var(--gold-light);padding:.6rem .9rem;text-align:left;font-family:'Noto Serif TC',serif;font-weight:500;letter-spacing:.05em;}
+  td{padding:.6rem .9rem;border-bottom:1px solid var(--border-light);}
+  tr:hover td{background:var(--jade-pale);}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.76rem;font-weight:500;}
+  .tag-admin{background:var(--seal-pale);color:var(--seal);border:1px solid #f0c0c0;}
+  .tag-user{background:var(--jade-pale);color:var(--jade);border:1px solid #b0d8c0;}
+  .tag-doc{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;}
+  .tag-deleted{background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;}
+  .doc-result{background:var(--ink);border-radius:var(--radius);padding:1.5rem;text-align:center;margin-top:1.5rem;display:none;}
+  .doc-result.show{display:block;}
+  .doc-result-label{color:var(--gold-light);font-size:.8rem;letter-spacing:.15em;margin-bottom:.5rem;font-family:'Noto Serif TC',serif;}
+  .doc-result-number{font-family:'Noto Serif TC',serif;font-size:2rem;color:var(--gold-light);letter-spacing:.2em;}
+  .doc-result-sub{color:rgba(250,246,238,.6);font-size:.78rem;margin-top:.5rem;}
+  #login-screen{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center;z-index:1000;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(196,154,42,.08) 39px,rgba(196,154,42,.08) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(196,154,42,.05) 39px,rgba(196,154,42,.05) 40px);}
+  .login-box{background:var(--parchment);border:1px solid var(--border);border-radius:4px;padding:2.5rem;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+  .login-seal{text-align:center;margin-bottom:1.5rem;}
+  .login-seal .seal-circle{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;background:var(--seal);border-radius:50%;font-family:'Noto Serif TC',serif;font-size:1.6rem;color:#fff;box-shadow:0 4px 16px rgba(139,26,26,.4);margin-bottom:.75rem;}
+  .login-title{font-family:'Noto Serif TC',serif;font-size:1.2rem;font-weight:700;color:var(--ink);text-align:center;letter-spacing:.1em;margin-bottom:1.75rem;}
+  .login-box .form-group{margin-bottom:1rem;}
+  .btn-login{width:100%;padding:.7rem;background:var(--seal);color:#fff;border:none;border-radius:var(--radius);font-size:.92rem;font-family:'Noto Serif TC',serif;font-weight:700;letter-spacing:.1em;cursor:pointer;margin-top:.5rem;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+  .btn-login:hover:not(:disabled){background:var(--seal-light);}
+  .btn-login:disabled{opacity:.6;cursor:not-allowed;}
+  .forgot-link{text-align:center;margin-top:.75rem;font-size:.8rem;color:var(--jade);cursor:pointer;text-decoration:underline;}
+  .forgot-link:hover{color:var(--jade-light);}
+  .alert{padding:.65rem 1rem;border-radius:var(--radius);font-size:.85rem;margin-bottom:1rem;display:none;}
+  .alert.show{display:flex;align-items:flex-start;gap:.5rem;}
+  .alert-error{background:var(--seal-pale);color:var(--seal);border:1px solid #f0c0c0;}
+  .alert-success{background:var(--jade-pale);color:var(--jade);border:1px solid #b0d8c0;}
+  .alert-warning{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.6);display:none;align-items:center;justify-content:center;z-index:500;}
+  .modal-overlay.show{display:flex;}
+  #modal-confirm{z-index:600;}  /* 確認 Modal 永遠在最上層 */
+  .modal{background:var(--parchment);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.4);}
+  .modal-title{font-family:'Noto Serif TC',serif;font-size:1rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border-light);}
+  .modal-footer{display:flex;justify-content:flex-end;gap:.75rem;margin-top:1.25rem;}
+  .tags-list{display:flex;flex-wrap:wrap;gap:.4rem;}
+  .tag-item{background:var(--jade-pale);color:var(--jade);border:1px solid #b0d8c0;border-radius:2px;padding:2px 8px;font-size:.78rem;display:flex;align-items:center;gap:.3rem;}
+  .tag-remove{cursor:pointer;font-size:.9rem;color:var(--seal);font-weight:700;line-height:1;}
+  .report-row{cursor:pointer;}
+  .report-link{color:var(--seal);font-weight:700;text-decoration:underline;cursor:pointer;}
+  .breadcrumb{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--ink-light);margin-bottom:1.25rem;flex-wrap:wrap;}
+  .breadcrumb .bc-link{cursor:pointer;color:var(--jade);}
+  .breadcrumb .bc-link:hover{text-decoration:underline;}
+  .breadcrumb .current{color:var(--ink);}
+  .breadcrumb .sep{color:var(--border);}
+  .page{display:none;} .page.active{display:block;}
+  .divider{border:none;border-top:1px solid var(--border-light);margin:1.25rem 0;}
+  .text-muted{color:var(--ink-light);font-size:.82rem;}
+  .mt-1{margin-top:.5rem;} .mt-2{margin-top:1rem;}
+  .flex{display:flex;} .items-center{align-items:center;} .justify-between{justify-content:space-between;}
+  .row-actions{display:flex;gap:.5rem;}
+  #forgot-screen{display:none;} #forgot-screen.show{display:block;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* 倒數計時器 */
+  .countdown-box{background:var(--ink);color:var(--gold-light);border-radius:var(--radius);padding:1.25rem;text-align:center;margin-top:1rem;}
+  .countdown-number{font-family:'Noto Serif TC',serif;font-size:2.5rem;color:#ef4444;font-weight:700;}
+  .countdown-label{font-size:.82rem;margin-top:.4rem;color:rgba(250,246,238,.7);}
+
+  /* 文號清單篩選 */
+  .filter-bar{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.25rem;}
+  .filter-bar .form-group{flex:1;min-width:140px;}
+  .deleted-row td{color:#9ca3af;}
+  .deleted-row td strong{color:#9ca3af;}
+  .action-badge{font-size:.72rem;padding:1px 6px;border-radius:2px;}
+  .action-created{background:#dcfce7;color:#166534;}
+  .action-edited{background:#dbeafe;color:#1e40af;}
+  .action-deleted{background:#fee2e2;color:#991b1b;}
+  .action-restored{background:#fef9c3;color:#854d0e;}
+</style>
+</head>
+<body>
+
+<!-- ══ Login ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-seal"><div class="seal-circle">印</div></div>
+    <div class="login-title">公文取號系統</div>
+    <div id="login-form">
+      <div class="alert alert-error" id="login-error"></div>
+      <div class="form-group"><label>登入帳號</label><input type="text" id="login-account" placeholder="請輸入帳號"></div>
+      <div class="form-group"><label>登入密碼</label>
+        <div class="pw-wrap"><input type="password" id="login-password" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" class="pw-toggle" onclick="togglePw('login-password',this)">👁</button></div>
+      </div>
+      <button class="btn-login" id="btn-login" onclick="doLogin()">登　入</button>
+      <div class="forgot-link" onclick="showForgot()">忘記密碼？</div>
+    </div>
+    <div id="forgot-screen">
+      <div class="alert alert-error" id="forgot-error"></div>
+      <div class="alert alert-success" id="forgot-success"></div>
+      <div id="forgot-step1">
+        <div class="form-group"><label>帳號</label><input type="text" id="forgot-account" placeholder="請輸入帳號"></div>
+        <div class="form-group"><label>個人信箱</label><input type="email" id="forgot-email" placeholder="請輸入個人信箱"></div>
+        <button class="btn-login" onclick="doForgotVerify()" style="background:var(--jade);">驗　證</button>
+      </div>
+      <div id="forgot-step2" style="display:none;">
+        <div class="form-group"><label>新密碼</label>
+          <div class="pw-wrap"><input type="password" id="forgot-new-pw" placeholder="請輸入新密碼">
+          <button type="button" class="pw-toggle" onclick="togglePw('forgot-new-pw',this)">👁</button></div>
+        </div>
+        <div class="form-group"><label>確認新密碼</label>
+          <div class="pw-wrap"><input type="password" id="forgot-confirm-pw" placeholder="請再次輸入">
+          <button type="button" class="pw-toggle" onclick="togglePw('forgot-confirm-pw',this)">👁</button></div>
+        </div>
+        <button class="btn-login" onclick="doResetPassword()" style="background:var(--jade);">重設密碼</button>
+      </div>
+      <div class="forgot-link" onclick="backToLogin()">← 返回登入</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ App ══ -->
+<div id="app" style="display:none;">
+  <header class="site-header">
+    <div class="logo">第一組公文取號系統</div>
+    <div class="header-right">
+      <div class="user-badge" id="header-user"></div>
+      <button class="btn-logout" onclick="doLogout()">登出</button>
+    </div>
+  </header>
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main-content">
+
+      <!-- 公文取號 -->
+      <div class="page" id="page-take-number">
+        <div class="card">
+          <div class="card-title">公文取號</div>
+          <div class="alert alert-error" id="take-error"></div>
+          <div class="alert alert-warning" id="take-warning"></div>
+          <div id="take-form">
+            <div class="form-grid">
+              <div class="form-group"><label>公文文號開頭</label>
+                <select id="take-prefix" onchange="loadProjectsForPrefix()"><option value="">— 請選擇 —</option></select></div>
+              <div class="form-group"><label>對應專案</label>
+                <select id="take-project"><option value="">— 請選擇 —</option></select></div>
+              <div class="form-group"><label>民國年</label><select id="take-year"></select></div>
+              <div class="form-group full"><label>發文主旨</label>
+                <textarea id="take-subject" placeholder="請輸入發文主旨…"></textarea></div>
+            </div>
+            <div class="mt-2"><button class="btn btn-primary" id="btn-take" onclick="doRequestLock()">取　號</button></div>
+          </div>
+          <!-- 倒數確認區 -->
+          <div id="take-confirm" style="display:none;">
+            <div class="countdown-box">
+              <div class="doc-result-label">▪ 預計文號 ▪</div>
+              <div class="doc-result-number" id="preview-number"></div>
+              <div class="doc-result-sub" id="preview-sub"></div>
+              <div class="countdown-number" id="countdown-num">30</div>
+              <div class="countdown-label">秒內請確認取號，否則將自動放棄</div>
+            </div>
+            <div class="mt-2 flex" style="gap:.75rem;">
+              <button class="btn btn-primary" onclick="doConfirmTake()">✔ 確認取號</button>
+              <button class="btn btn-ghost" onclick="doCancelTake()">✘ 放棄取號</button>
+            </div>
+          </div>
+          <!-- 取號結果 -->
+          <div class="doc-result" id="take-result">
+            <div class="doc-result-label">▪ 公文文號 ▪</div>
+            <div class="doc-result-number" id="take-result-number"></div>
+            <div class="doc-result-sub" id="take-result-sub"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 使用者管理 -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+            <div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">使用者管理</div>
+            <button class="btn btn-primary" onclick="openUserModal()">＋ 新增使用者</button>
+          </div>
+          <div class="alert alert-success" id="users-success"></div>
+          <div class="alert alert-error" id="users-error"></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>姓名</th><th>帳號</th><th>個人信箱</th><th>角色</th><th>操作</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- 文號開頭設定 -->
+      <div class="page" id="page-prefix">
+        <div class="card">
+          <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+            <div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">文號開頭設定</div>
+            <button class="btn btn-primary" onclick="openPrefixModal()">＋ 新增文號開頭</button>
+          </div>
+          <div class="alert alert-success" id="prefix-success"></div>
+          <div class="alert alert-error" id="prefix-error"></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>文號開頭</th><th>對應專案</th><th>操作</th></tr></thead>
+            <tbody id="prefix-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- 統計報表 -->
+      <div class="page" id="page-report">
+        <div class="card">
+          <div class="card-title">統計報表</div>
+          <div id="report-level0">
+            <div style="display:flex;align-items:flex-end;gap:1rem;max-width:360px;">
+              <div class="form-group" style="flex:1;"><label>查詢年度（民國年）</label>
+                <select id="report-year-sel"></select></div>
+              <button class="btn btn-primary" style="margin-bottom:1px;" onclick="loadReport()">查　詢</button>
+            </div>
+          </div>
+          <!-- 層級1：文號開頭統計 -->
+          <div id="report-level1" style="display:none;">
+            <div class="breadcrumb">
+              <span class="bc-link" onclick="reportShowLevel(0)">年度查詢</span>
+              <span class="sep">›</span><span class="current" id="bc-year"></span>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>文號開頭</th><th>有效數（無效數）</th></tr></thead>
+              <tbody id="report-tbody1"></tbody>
+            </table></div>
+          </div>
+          <!-- 層級2：清單（含篩選） -->
+          <div id="report-level2" style="display:none;">
+            <div class="breadcrumb">
+              <span class="bc-link" onclick="reportShowLevel(0)">年度查詢</span>
+              <span class="sep">›</span>
+              <span class="bc-link" id="bc-year2" onclick="reportShowLevel(1)"></span>
+              <span class="sep">›</span><span class="current" id="bc-prefix2"></span>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group"><label>專案篩選</label>
+                <select id="report-filter-project"><option value="">全部專案</option></select></div>
+              <div class="form-group"><label>主旨關鍵字</label>
+                <input type="text" id="report-filter-subject" placeholder="輸入關鍵字…" oninput="renderReportList()"></div>
+              <button class="btn btn-ghost" onclick="clearReportFilter()">清除篩選</button>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>完整文號</th><th>專案</th><th>發文主旨</th><th>取號者</th><th>取號時間</th></tr></thead>
+              <tbody id="report-tbody2"></tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文號清單管理 -->
+      <div class="page" id="page-doclist">
+        <div class="card">
+          <div class="card-title">文號清單管理</div>
+          <div class="filter-bar">
+            <div class="form-group"><label>年度</label><select id="doclist-year"></select></div>
+            <div class="form-group"><label>文號開頭</label>
+              <select id="doclist-prefix"><option value="">全部</option></select></div>
+            <button class="btn btn-primary" onclick="loadDocList()">查　詢</button>
+          </div>
+          <div class="alert alert-success" id="doclist-success"></div>
+          <div class="alert alert-error" id="doclist-error"></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>完整文號</th><th>專案</th><th>發文主旨</th><th>取號者</th><th>狀態</th><th>最後異動</th><th>操作</th></tr></thead>
+            <tbody id="doclist-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- 個人設定 -->
+      <div class="page" id="page-profile">
+        <div class="card">
+          <div class="card-title">個人設定</div>
+          <div class="alert alert-success" id="profile-success"></div>
+          <div class="alert alert-error" id="profile-error"></div>
+          <div class="form-grid">
+            <div class="form-group"><label>姓名</label><input type="text" id="profile-name"></div>
+            <div class="form-group"><label>帳號（不可修改）</label><input type="text" id="profile-account" disabled></div>
+            <div class="form-group full"><label>個人信箱</label><input type="email" id="profile-email"></div>
+          </div>
+          <hr class="divider">
+          <div class="card-title">修改密碼</div>
+          <div class="form-grid">
+            <div class="form-group"><label>舊密碼</label>
+              <div class="pw-wrap"><input type="password" id="profile-old-pw">
+              <button type="button" class="pw-toggle" onclick="togglePw('profile-old-pw',this)">👁</button></div>
+            </div>
+            <div class="form-group"></div>
+            <div class="form-group"><label>新密碼</label>
+              <div class="pw-wrap"><input type="password" id="profile-new-pw">
+              <button type="button" class="pw-toggle" onclick="togglePw('profile-new-pw',this)">👁</button></div>
+            </div>
+            <div class="form-group"><label>確認新密碼</label>
+              <div class="pw-wrap"><input type="password" id="profile-confirm-pw">
+              <button type="button" class="pw-toggle" onclick="togglePw('profile-confirm-pw',this)">👁</button></div>
+            </div>
+          </div>
+          <div class="mt-2"><button class="btn btn-primary" onclick="saveProfile()">儲存設定</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal: 使用者 -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <div class="modal-title" id="modal-user-title">新增使用者</div>
+    <div class="alert alert-error" id="modal-user-error"></div>
+    <div class="form-grid">
+      <div class="form-group"><label>姓名 *</label><input type="text" id="mu-name" placeholder="王小明"></div>
+      <div class="form-group"><label>登入帳號 *</label><input type="text" id="mu-account" placeholder="abc123"></div>
+      <div class="form-group"><label>登入密碼 *</label>
+        <div class="pw-wrap"><input type="password" id="mu-password" placeholder="請設定密碼">
+        <button type="button" class="pw-toggle" onclick="togglePw('mu-password',this)">👁</button></div>
+      </div>
+      <div class="form-group"><label>個人信箱 *</label><input type="email" id="mu-email" placeholder="user@example.com"></div>
+      <div class="form-group"><label>角色 *</label>
+        <select id="mu-role"><option value="user">一般使用者</option><option value="admin">管理者</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeUserModal()">取消</button>
+      <button class="btn btn-primary" id="btn-save-user" onclick="saveUser()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 文號 -->
+<div class="modal-overlay" id="modal-prefix">
+  <div class="modal">
+    <div class="modal-title" id="modal-prefix-title">新增文號開頭</div>
+    <div class="alert alert-error" id="modal-prefix-error"></div>
+    <div class="form-group" style="margin-bottom:1rem;">
+      <label>文號開頭（最多三個中文字）*</label>
+      <input type="text" id="mp-prefix" placeholder="例：研發、工程、行政" maxlength="3">
+    </div>
+    <div class="form-group">
+      <label>對應專案（輸入後按 Enter 新增）</label>
+      <input type="text" id="mp-project-input" placeholder="輸入專案名稱後按 Enter"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addProjectTag();}">
+      <div class="tags-list mt-1" id="mp-tags"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePrefixModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePrefix()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 確認操作 -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="width:400px;">
+    <div class="modal-title" id="modal-confirm-title">確認操作</div>
+    <p id="modal-confirm-msg" style="font-size:.9rem;line-height:1.7;color:var(--ink-light);"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeConfirmModal()">取消</button>
+      <button class="btn btn-primary" id="btn-confirm-ok">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 編輯主旨 -->
+<div class="modal-overlay" id="modal-edit-subject">
+  <div class="modal" style="width:440px;">
+    <div class="modal-title">編輯發文主旨</div>
+    <div class="alert alert-error" id="edit-subject-error"></div>
+    <div class="form-group">
+      <label>完整文號</label><input type="text" id="edit-doc-number" disabled>
+    </div>
+    <div class="form-group" style="margin-top:.75rem;">
+      <label>發文主旨</label>
+      <textarea id="edit-doc-subject" style="min-height:100px;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditSubjectModal()">取消</button>
+      <button class="btn btn-primary" id="btn-save-subject" onclick="confirmEditSubject()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  ★ 只需設定 Worker 網址 ★
+// ═══════════════════════════════════════════════════
+const API = 'https://doc-no-worker.f8510026.workers.dev';
+// ═══════════════════════════════════════════════════
+
+const REPORT_YEAR_MIN = 115;
+let currentUser = null;
+let accessToken = null;
+let editingUserId = null;
+let editingPrefixId = null;
+let prefixProjects = [];
+let userDataMap = {};
+let prefixDataMap = {};
+let reportCache = { year: null, docs: [] };
+let reportCurrentPrefix = null;
+let docListData = [];
+let docListDataMap = {};
+let editingDocId = null;
+let confirmCallback = null;
+
+// 取號相關
+let currentLockId = null;
+let countdownTimer = null;
+let pendingTakeData = null;
+
+// ══ API 封裝 ══
+async function api(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...options.headers,
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ══ Helpers ══
+function showAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `alert alert-${type} show`;
+  setTimeout(() => { el.className = `alert alert-${type}`; }, 5000);
+}
+function hideAlert(id) { const el = document.getElementById(id); if (el) el.className = el.className.replace(' show', ''); }
+function getRocYear() { return new Date().getFullYear() - 1911; }
+function pad4(n) { return String(n).padStart(4, '0'); }
+function setBtn(id, loading, label) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span> 處理中…` : label;
+}
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
+}
+function fmtDate(str) {
+  if (!str) return '—';
+  return new Date(str).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function actionLabel(action) {
+  const map = { created: ['新建', 'action-created'], edited: ['編輯', 'action-edited'], deleted: ['刪除', 'action-deleted'], restored: ['恢復', 'action-restored'] };
+  const [label, cls] = map[action] || ['—', ''];
+  return `<span class="action-badge ${cls}">${label}</span>`;
+}
+
+// ══ 確認 Modal ══
+function openConfirmModal(title, msg, cb) {
+  document.getElementById('modal-confirm-title').textContent = title;
+  document.getElementById('modal-confirm-msg').textContent = msg;
+  confirmCallback = cb;
+  document.getElementById('modal-confirm').classList.add('show');
+  document.getElementById('btn-confirm-ok').onclick = () => { closeConfirmModal(); cb(); };
+}
+function closeConfirmModal() { document.getElementById('modal-confirm').classList.remove('show'); }
+
+// ══ Login / Logout ══
+async function doLogin() {
+  const account = document.getElementById('login-account').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!account || !password) { showAlert('login-error', '請輸入帳號及密碼'); return; }
+  hideAlert('login-error');
+  setBtn('btn-login', true, '登　入');
+  const res = await api('/api/login', { method: 'POST', body: { account, password } });
+  setBtn('btn-login', false, '登　入');
+  if (!res.ok) { showAlert('login-error', res.data?.error || '帳號或密碼錯誤'); return; }
+  accessToken = res.data.token;
+  currentUser = res.data.user;
+  sessionStorage.setItem('token', accessToken);
+  sessionStorage.setItem('user', JSON.stringify(currentUser));
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initApp();
+}
+async function doLogout() {
+  accessToken = null; currentUser = null;
+  sessionStorage.removeItem('token'); sessionStorage.removeItem('user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('forgot-screen').className = '';
+  document.getElementById('login-account').value = '';
+  document.getElementById('login-password').value = '';
+}
+function showForgot() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('forgot-screen').className = 'show';
+  document.getElementById('forgot-step1').style.display = 'block';
+  document.getElementById('forgot-step2').style.display = 'none';
+}
+function backToLogin() {
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('forgot-screen').className = '';
+}
+async function doForgotVerify() {
+  hideAlert('forgot-error'); hideAlert('forgot-success');
+  const account = document.getElementById('forgot-account').value.trim();
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!account || !email) { showAlert('forgot-error', '請填寫帳號及信箱'); return; }
+  const res = await api('/api/forgot/verify', { method: 'POST', body: { account, email } });
+  if (!res.ok) { showAlert('forgot-error', res.data?.error || '驗證失敗'); return; }
+  window._forgotAuthId = res.data.auth_id;
+  document.getElementById('forgot-step1').style.display = 'none';
+  document.getElementById('forgot-step2').style.display = 'block';
+}
+async function doResetPassword() {
+  hideAlert('forgot-error'); hideAlert('forgot-success');
+  const np = document.getElementById('forgot-new-pw').value;
+  const cp = document.getElementById('forgot-confirm-pw').value;
+  if (!np) { showAlert('forgot-error', '請輸入新密碼'); return; }
+  if (np !== cp) { showAlert('forgot-error', '兩次密碼不一致'); return; }
+  const res = await api('/api/forgot/reset', { method: 'POST', body: { auth_id: window._forgotAuthId, password: np } });
+  if (!res.ok) { showAlert('forgot-error', res.data?.error || '重設失敗'); return; }
+  showAlert('forgot-success', '密碼重設成功！請重新登入', 'success');
+  setTimeout(backToLogin, 2000);
+}
+
+// ══ App Init ══
+function initApp() {
+  document.getElementById('header-user').textContent =
+    `${currentUser.name}（${currentUser.role === 'admin' ? '管理者' : '一般使用者'}）`;
+  buildSidebar();
+  if (currentUser.role === 'admin') setupReportYearSel();
+  navigateTo('page-take-number');
+  loadTakeNumberPage();
+}
+function buildSidebar() {
+  let html = '';
+  if (currentUser.role === 'admin') {
+    html += `<div class="sidebar-label">公文作業</div>`;
+    html += nav('page-take-number', '📄', '公文取號');
+    html += nav('page-doclist', '📋', '文號清單管理');
+    html += `<div class="sidebar-label">管理功能</div>`;
+    html += nav('page-users', '👥', '使用者管理');
+    html += nav('page-prefix', '🔖', '文號開頭設定');
+    html += nav('page-report', '📊', '統計報表');
+  } else {
+    html += `<div class="sidebar-label">公文作業</div>`;
+    html += nav('page-take-number', '📄', '公文取號');
+    html += nav('page-doclist', '📋', '文號清單管理');
+  }
+  html += `<div class="sidebar-label" style="margin-top:auto;">帳號</div>`;
+  html += nav('page-profile', '⚙️', '個人設定');
+  document.getElementById('sidebar').innerHTML = html;
+}
+function nav(page, icon, label) {
+  return `<div class="nav-item" id="nav-${page}" onclick="navigateTo('${page}')">${icon} ${label}</div>`;
+}
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(pageId)?.classList.add('active');
+  document.getElementById('nav-' + pageId)?.classList.add('active');
+  if (pageId === 'page-profile') loadProfile();
+  if (pageId === 'page-prefix') loadPrefixes();
+  if (pageId === 'page-users') loadUsers();
+  if (pageId === 'page-take-number') loadTakeNumberPage();
+  if (pageId === 'page-report') resetReport();
+  if (pageId === 'page-doclist') initDocList();
+}
+
+// ══ 公文取號 ══
+async function loadTakeNumberPage() {
+  const cur = getRocYear();
+  const yearSel = document.getElementById('take-year');
+  yearSel.innerHTML = '';
+  [cur - 1, cur, cur + 1].forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
+    if (y === cur) opt.selected = true;
+    yearSel.appendChild(opt);
+  });
+  const res = await api('/api/prefixes?active=true');
+  const sel = document.getElementById('take-prefix');
+  sel.innerHTML = '<option value="">— 請選擇文號開頭 —</option>';
+  (res.data || []).forEach(row => {
+    const opt = document.createElement('option');
+    opt.value = row.id; opt.textContent = row.prefix;
+    opt.dataset.projects = JSON.stringify(row.projects || []);
+    sel.appendChild(opt);
+  });
+  document.getElementById('take-project').innerHTML = '<option value="">— 請選擇 —</option>';
+  document.getElementById('take-subject').value = '';
+  document.getElementById('take-result').classList.remove('show');
+  document.getElementById('take-form').style.display = 'block';
+  document.getElementById('take-confirm').style.display = 'none';
+  hideAlert('take-error'); hideAlert('take-warning');
+  stopCountdown();
+}
+function loadProjectsForPrefix() {
+  const sel = document.getElementById('take-prefix');
+  const projSel = document.getElementById('take-project');
+  projSel.innerHTML = '<option value="">— 請選擇專案 —</option>';
+  document.getElementById('take-result').classList.remove('show');
+  const selected = sel.options[sel.selectedIndex];
+  if (!selected?.value) return;
+  try {
+    JSON.parse(selected.dataset.projects || '[]').forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      projSel.appendChild(opt);
+    });
+  } catch (e) {}
+}
+
+// 步驟1：申請鎖定
+async function doRequestLock() {
+  hideAlert('take-error'); hideAlert('take-warning');
+  const prefixSel = document.getElementById('take-prefix');
+  const prefixId = prefixSel.value;
+  const prefixText = prefixSel.options[prefixSel.selectedIndex]?.textContent || '';
+  const project = document.getElementById('take-project').value;
+  const year = parseInt(document.getElementById('take-year').value);
+  const subject = document.getElementById('take-subject').value.trim();
+  if (!prefixId) { showAlert('take-error', '請選擇文號開頭'); return; }
+  if (!project) { showAlert('take-error', '請選擇專案'); return; }
+  if (!subject) { showAlert('take-error', '請輸入發文主旨'); return; }
+
+  setBtn('btn-take', true, '取　號');
+  const res = await api('/api/lock', { method: 'POST', body: { prefix_id: prefixId, roc_year: year } });
+  setBtn('btn-take', false, '取　號');
+
+  if (!res.ok) { showAlert('take-error', res.data?.error || '取號失敗'); return; }
+
+  if (res.data.locked) {
+    showAlert('take-warning', `目前 ${res.data.locked_by_name} 正在取號中，請稍候約 ${res.data.remaining} 秒後再試`, 'warning');
+    return;
+  }
+
+  // 取得鎖定，進入確認步驟
+  currentLockId = res.data.lock_id;
+  pendingTakeData = { prefixId, prefixText, project, year, subject };
+
+  // 顯示預計文號（先查目前最大流水號）
+  const docRes = await api(`/api/documents?year=${year}&prefix_id=${prefixId}`);
+  const docs = (docRes.data || []).filter(d => !d.is_deleted || d.serial);
+  const maxSerial = docs.length > 0 ? Math.max(...docs.map(d => d.serial)) : 0;
+  const previewNumber = `${prefixText}${year}${pad4(maxSerial + 1)}`;
+
+  document.getElementById('preview-number').textContent = previewNumber;
+  document.getElementById('preview-sub').textContent = `${project} ｜ ${subject}`;
+  document.getElementById('take-form').style.display = 'none';
+  document.getElementById('take-confirm').style.display = 'block';
+  document.getElementById('take-result').classList.remove('show');
+
+  startCountdown(30);
+}
+
+function startCountdown(seconds) {
+  let remaining = seconds;
+  document.getElementById('countdown-num').textContent = remaining;
+  countdownTimer = setInterval(async () => {
+    remaining--;
+    document.getElementById('countdown-num').textContent = remaining;
+    if (remaining <= 0) {
+      stopCountdown();
+      await doCancelTake();
+      showAlert('take-warning', '已超過確認時間，取號已自動放棄', 'warning');
+    }
+  }, 1000);
+}
+function stopCountdown() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+}
+
+// 步驟2：確認取號
+async function doConfirmTake() {
+  stopCountdown();
+  if (!currentLockId || !pendingTakeData) return;
+  const { prefixId, prefixText, project, year, subject } = pendingTakeData;
+  const res = await api('/api/documents', {
+    method: 'POST',
+    body: { prefix_id: prefixId, prefix_text: prefixText, project, roc_year: year, subject, lock_id: currentLockId },
+  });
+  if (!res.ok) {
+    showAlert('take-error', res.data?.error || '取號失敗');
+    document.getElementById('take-form').style.display = 'block';
+    document.getElementById('take-confirm').style.display = 'none';
+    currentLockId = null; pendingTakeData = null;
+    return;
+  }
+  document.getElementById('take-result-number').textContent = res.data.full_number;
+  document.getElementById('take-result-sub').textContent = `${project} ｜ ${subject}`;
+  document.getElementById('take-result').classList.add('show');
+  document.getElementById('take-confirm').style.display = 'none';
+  document.getElementById('take-form').style.display = 'block';
+  document.getElementById('take-project').value = '';
+  document.getElementById('take-subject').value = '';
+  currentLockId = null; pendingTakeData = null;
+}
+
+// 放棄取號
+async function doCancelTake() {
+  stopCountdown();
+  if (currentLockId) {
+    await api(`/api/lock/${currentLockId}`, { method: 'DELETE' });
+    currentLockId = null;
+  }
+  pendingTakeData = null;
+  document.getElementById('take-form').style.display = 'block';
+  document.getElementById('take-confirm').style.display = 'none';
+}
+
+// ══ 使用者管理 ══
+async function loadUsers() {
+  const res = await api('/api/users');
+  userDataMap = {};
+  document.getElementById('users-tbody').innerHTML = (res.data || []).map(u => {
+    userDataMap[u.id] = u;
+    const isActive = u.is_active !== false;
+    return `<tr style="${!isActive ? 'opacity:.5;' : ''}">
+      <td>${u.name}</td><td>${u.account}</td><td>${u.email || '—'}</td>
+      <td>
+        <span class="tag ${u.role === 'admin' ? 'tag-admin' : 'tag-user'}">${u.role === 'admin' ? '管理者' : '一般使用者'}</span>
+        ${!isActive ? '<span class="tag tag-deleted" style="margin-left:4px;">停用</span>' : ''}
+      </td>
+      <td class="row-actions">
+        ${u.role !== 'admin' || u.id !== currentUser.id ? `
+        <button class="btn btn-ghost" style="font-size:.8rem;padding:4px 10px;"
+          data-id="${u.id}" onclick="editUserById(this.dataset.id)">編輯</button>
+        ${isActive
+          ? `<button class="btn btn-danger" style="font-size:.8rem;padding:4px 10px;"
+               data-id="${u.id}" onclick="toggleUserActive(this.dataset.id,false)">停用</button>`
+          : `<button class="btn btn-primary" style="font-size:.8rem;padding:4px 10px;"
+               data-id="${u.id}" onclick="toggleUserActive(this.dataset.id,true)">啟用</button>`
+        }` : '<span class="text-muted">（本帳號）</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+function editUserById(id) { const u = userDataMap[id]; if (!u) return; editUser(u.id, u.name, u.account, u.email || '', u.auth_id, u.role); }
+function openUserModal() {
+  editingUserId = null;
+  document.getElementById('modal-user-title').textContent = '新增使用者';
+  ['mu-name','mu-account','mu-email'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('mu-password').value = '';
+  document.getElementById('mu-password').type = 'password';
+  document.querySelector('#modal-user .pw-toggle').textContent = '👁';
+  document.getElementById('mu-account').disabled = false;
+  document.getElementById('mu-role').value = 'user';
+  hideAlert('modal-user-error');
+  document.getElementById('modal-user').classList.add('show');
+}
+function closeUserModal() { document.getElementById('modal-user').classList.remove('show'); }
+function editUser(id, name, account, email, authId, role) {
+  editingUserId = { id, authId };
+  document.getElementById('modal-user-title').textContent = '編輯使用者';
+  document.getElementById('mu-name').value = name;
+  document.getElementById('mu-account').value = account;
+  document.getElementById('mu-account').disabled = true;
+  document.getElementById('mu-email').value = email;
+  document.getElementById('mu-password').value = '';
+  document.getElementById('mu-password').type = 'password';
+  document.querySelector('#modal-user .pw-toggle').textContent = '👁';
+  document.getElementById('mu-role').value = role || 'user';
+  hideAlert('modal-user-error');
+  document.getElementById('modal-user').classList.add('show');
+}
+async function saveUser() {
+  hideAlert('modal-user-error');
+  const name = document.getElementById('mu-name').value.trim();
+  const account = document.getElementById('mu-account').value.trim();
+  const password = document.getElementById('mu-password').value;
+  const email = document.getElementById('mu-email').value.trim();
+  const role = document.getElementById('mu-role').value;
+  if (!name || !account || !email) { showAlert('modal-user-error', '請填寫所有必填欄位'); return; }
+  setBtn('btn-save-user', true, '儲存');
+  if (editingUserId) {
+    const res = await api(`/api/users/${editingUserId.id}`, {
+      method: 'PUT', body: { name, email, role, password: password || undefined, auth_id: editingUserId.authId },
+    });
+    if (!res.ok) { showAlert('modal-user-error', res.data?.error || '更新失敗'); setBtn('btn-save-user', false, '儲存'); return; }
+  } else {
+    if (!password) { showAlert('modal-user-error', '請設定密碼'); setBtn('btn-save-user', false, '儲存'); return; }
+    const res = await api('/api/users', { method: 'POST', body: { account, password, name, email, role } });
+    if (!res.ok) { showAlert('modal-user-error', res.data?.error || '新增失敗'); setBtn('btn-save-user', false, '儲存'); return; }
+  }
+  setBtn('btn-save-user', false, '儲存');
+  closeUserModal(); loadUsers();
+  showAlert('users-success', editingUserId ? '使用者已更新' : '使用者已新增', 'success');
+}
+async function toggleUserActive(id, active) {
+  const action = active ? '啟用' : '停用';
+  openConfirmModal(`${action}使用者`, `確定要${action}此使用者？`, async () => {
+    const res = await api(`/api/users/${id}`, { method: 'PUT', body: { is_active: active } });
+    if (!res.ok) { showAlert('users-error', res.data?.error || `${action}失敗`); return; }
+    loadUsers();
+    showAlert('users-success', `使用者已${action}`, 'success');
+  });
+}
+
+// ══ 文號設定 ══
+async function loadPrefixes() {
+  const res = await api('/api/prefixes');
+  prefixDataMap = {};
+  document.getElementById('prefix-tbody').innerHTML = (res.data || []).map(r => {
+    prefixDataMap[r.id] = { id: r.id, prefix: r.prefix, projects: r.projects || [], is_active: r.is_active !== false };
+    const isActive = r.is_active !== false;
+    return `<tr style="${!isActive ? 'opacity:.5;' : ''}">
+      <td><strong>${r.prefix}</strong>${!isActive ? '<span class="tag tag-deleted" style="margin-left:6px;font-size:.72rem;">停用</span>' : ''}</td>
+      <td>${(r.projects || []).map(p => `<span class="tag tag-doc">${p}</span>`).join(' ')}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost" style="font-size:.8rem;padding:4px 10px;"
+          data-id="${r.id}" onclick="editPrefixById(this.dataset.id)">編輯</button>
+        ${isActive
+          ? `<button class="btn btn-danger" style="font-size:.8rem;padding:4px 10px;"
+               data-id="${r.id}" onclick="togglePrefixActive(this.dataset.id,false)">停用</button>`
+          : `<button class="btn btn-primary" style="font-size:.8rem;padding:4px 10px;"
+               data-id="${r.id}" onclick="togglePrefixActive(this.dataset.id,true)">啟用</button>`
+        }
+      </td>
+    </tr>`;
+  }).join('');
+}
+function editPrefixById(id) { const r = prefixDataMap[id]; if (!r) return; editPrefix(r.id, r.prefix, r.projects); }
+async function togglePrefixActive(id, active) {
+  const action = active ? '啟用' : '停用';
+  openConfirmModal(`${action}文號開頭`, `確定要${action}此文號開頭？`, async () => {
+    const res = await api(`/api/prefixes/${id}`, { method: 'PUT', body: { is_active: active } });
+    if (!res.ok) { showAlert('prefix-error', res.data?.error || `${action}失敗`); return; }
+    loadPrefixes();
+    showAlert('prefix-success', `文號開頭已${action}`, 'success');
+  });
+}
+function openPrefixModal() {
+  editingPrefixId = null; prefixProjects = [];
+  document.getElementById('modal-prefix-title').textContent = '新增文號開頭';
+  document.getElementById('mp-prefix').value = '';
+  document.getElementById('mp-project-input').value = '';
+  document.getElementById('mp-tags').innerHTML = '';
+  hideAlert('modal-prefix-error');
+  document.getElementById('modal-prefix').classList.add('show');
+}
+function closePrefixModal() { document.getElementById('modal-prefix').classList.remove('show'); }
+function editPrefix(id, prefix, projects) {
+  editingPrefixId = id;
+  prefixProjects = Array.isArray(projects) ? [...projects] : [];
+  document.getElementById('modal-prefix-title').textContent = '編輯文號開頭';
+  document.getElementById('mp-prefix').value = prefix;
+  document.getElementById('mp-project-input').value = '';
+  hideAlert('modal-prefix-error');
+  renderPrefixTags();
+  document.getElementById('modal-prefix').classList.add('show');
+}
+function addProjectTag() {
+  const input = document.getElementById('mp-project-input');
+  const val = input.value.trim();
+  if (!val || prefixProjects.includes(val)) { input.value = ''; return; }
+  prefixProjects.push(val); input.value = '';
+  renderPrefixTags();
+}
+function removeTag(idx) { prefixProjects.splice(idx, 1); renderPrefixTags(); }
+function renderPrefixTags() {
+  document.getElementById('mp-tags').innerHTML = prefixProjects
+    .map((p, i) => `<div class="tag-item">${p}<span class="tag-remove" onclick="removeTag(${i})">×</span></div>`).join('');
+}
+async function savePrefix() {
+  hideAlert('modal-prefix-error');
+  const prefix = document.getElementById('mp-prefix').value.trim();
+  if (!prefix) { showAlert('modal-prefix-error', '請填寫文號開頭'); return; }
+  if ([...prefix].length > 3) { showAlert('modal-prefix-error', '文號開頭最多三個中文字'); return; }
+  if (prefixProjects.length === 0) { showAlert('modal-prefix-error', '請至少新增一個專案'); return; }
+  if (editingPrefixId) {
+    const res = await api(`/api/prefixes/${editingPrefixId}`, { method: 'PUT', body: { prefix, projects: prefixProjects } });
+    if (!res.ok) { showAlert('modal-prefix-error', res.data?.error || '更新失敗'); return; }
+  } else {
+    const res = await api('/api/prefixes', { method: 'POST', body: { prefix, projects: prefixProjects } });
+    if (!res.ok) { showAlert('modal-prefix-error', res.data?.error || '新增失敗'); return; }
+  }
+  closePrefixModal(); loadPrefixes();
+  showAlert('prefix-success', editingPrefixId ? '文號已更新' : '文號已新增', 'success');
+}
+
+// ══ 統計報表 ══
+function setupReportYearSel() {
+  const cur = getRocYear();
+  const sel = document.getElementById('report-year-sel');
+  sel.innerHTML = '';
+  for (let y = REPORT_YEAR_MIN; y <= cur + 1; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
+    if (y === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+function resetReport() {
+  reportCache = { year: null, docs: [] }; reportCurrentPrefix = null;
+  reportShowLevel(0);
+  const cur = getRocYear();
+  const sel = document.getElementById('report-year-sel');
+  if (sel) sel.value = cur;
+}
+function reportShowLevel(n) {
+  [0, 1, 2].forEach(i => document.getElementById(`report-level${i}`).style.display = i === n ? 'block' : 'none');
+}
+async function loadReport() {
+  const year = parseInt(document.getElementById('report-year-sel').value);
+  const res = await api(`/api/documents?year=${year}`);
+  const allDocs = res.data || [];
+  // 分別存有效與無效
+  reportCache = {
+    year,
+    docs: allDocs.filter(d => !d.is_deleted),
+    deletedDocs: allDocs.filter(d => d.is_deleted),
+  };
+  // 依文號開頭分組（合併）
+  const byPrefix = {};
+  allDocs.forEach(d => {
+    if (!byPrefix[d.prefix_text]) byPrefix[d.prefix_text] = { valid: [], invalid: [] };
+    if (d.is_deleted) byPrefix[d.prefix_text].invalid.push(d);
+    else byPrefix[d.prefix_text].valid.push(d);
+  });
+  document.getElementById('bc-year').textContent = `民國 ${year} 年`;
+  const tbody = document.getElementById('report-tbody1');
+  if (Object.keys(byPrefix).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-light);padding:2rem;">本年度無公文記錄</td></tr>';
+  } else {
+    tbody.innerHTML = Object.entries(byPrefix).map(([prefix, { valid, invalid }]) => `
+      <tr class="report-row">
+        <td>${prefix}</td>
+        <td>
+          <span class="report-link" onclick="loadReportLevel2('${prefix}', false)">${valid.length}</span>
+          （<span class="report-link" style="color:var(--ink-light);font-weight:normal;" onclick="loadReportLevel2('${prefix}', true)">${invalid.length}</span>）
+        </td>
+      </tr>`).join('');
+  }
+  reportShowLevel(1);
+}
+function loadReportLevel2(prefix, showDeleted = false) {
+  reportCurrentPrefix = prefix;
+  window._reportShowDeleted = showDeleted;
+  const allPrefixDocs = [
+    ...reportCache.docs.filter(d => d.prefix_text === prefix),
+    ...reportCache.deletedDocs.filter(d => d.prefix_text === prefix),
+  ];
+  const docs = showDeleted
+    ? reportCache.deletedDocs.filter(d => d.prefix_text === prefix)
+    : reportCache.docs.filter(d => d.prefix_text === prefix);
+
+  document.getElementById('bc-year2').textContent = `民國 ${reportCache.year} 年`;
+  document.getElementById('bc-prefix2').textContent = `${prefix}（${showDeleted ? '無效文號' : '有效文號'}）`;
+
+  // 建立專案篩選選單（依當前清單）
+  const projects = [...new Set(docs.map(d => d.project))].sort();
+  const projSel = document.getElementById('report-filter-project');
+  projSel.innerHTML = '<option value="">全部專案</option>';
+  projects.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    projSel.appendChild(opt);
+  });
+  document.getElementById('report-filter-subject').value = '';
+
+  window._reportLv2Docs = docs;
+  renderReportList();
+  reportShowLevel(2);
+}
+function renderReportList() {
+  const docs = window._reportLv2Docs || [];
+  const showDeleted = window._reportShowDeleted || false;
+  const filterProject = document.getElementById('report-filter-project').value;
+  const filterSubject = document.getElementById('report-filter-subject').value.toLowerCase();
+  const filtered = docs.filter(d =>
+    (!filterProject || d.project === filterProject) &&
+    (!filterSubject || d.subject.toLowerCase().includes(filterSubject))
+  ).sort((a, b) => a.serial - b.serial);
+  document.getElementById('report-tbody2').innerHTML = filtered.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--ink-light);padding:2rem;">無符合條件的記錄</td></tr>'
+    : filtered.map(d => `<tr style="${showDeleted ? 'opacity:.6;' : ''}">
+        <td><strong>${d.full_number}</strong>${showDeleted ? ' <span class="tag tag-deleted" style="font-size:.7rem;">無效</span>' : ''}</td>
+        <td>${d.project}</td>
+        <td>${d.subject}</td>
+        <td>${d.created_by_name || '—'}</td>
+        <td>${fmtDate(d.created_at)}</td>
+      </tr>`).join('');
+}
+function clearReportFilter() {
+  document.getElementById('report-filter-project').value = '';
+  document.getElementById('report-filter-subject').value = '';
+  renderReportList();
+}
+
+// ══ 文號清單管理 ══
+async function initDocList() {
+  // 年度選單
+  const cur = getRocYear();
+  const yearSel = document.getElementById('doclist-year');
+  yearSel.innerHTML = '';
+  for (let y = cur + 1; y >= REPORT_YEAR_MIN; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = `民國 ${y} 年`;
+    if (y === cur) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+  // 文號開頭選單
+  const prefixRes = await api('/api/prefixes');
+  const prefixSel = document.getElementById('doclist-prefix');
+  prefixSel.innerHTML = '<option value="">全部</option>';
+  (prefixRes.data || []).forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.id; opt.textContent = r.prefix;
+    prefixSel.appendChild(opt);
+  });
+  loadDocList();
+}
+async function loadDocList() {
+  const year = document.getElementById('doclist-year').value;
+  const prefixId = document.getElementById('doclist-prefix').value;
+  let query = `/api/documents?year=${year}`;
+  if (prefixId) query += `&prefix_id=${prefixId}`;
+  // 一般使用者只看自己的
+  if (currentUser.role !== 'admin') query += '&my_only=true';
+  const res = await api(query);
+  docListData = (res.data || []).sort((a, b) => a.serial - b.serial);
+  docListDataMap = {};
+  docListData.forEach(d => { docListDataMap[d.id] = d; });
+  renderDocList();
+}
+function renderDocList() {
+  const tbody = document.getElementById('doclist-tbody');
+  if (docListData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-light);padding:2rem;">無資料</td></tr>';
+    return;
+  }
+  tbody.innerHTML = docListData.map(d => {
+    const isDeleted = d.is_deleted;
+    const canEdit = currentUser.role === 'admin' || d.created_by === currentUser.id;
+    return `<tr class="${isDeleted ? 'deleted-row' : ''}">
+      <td><strong>${d.full_number}</strong>${isDeleted ? ' <span class="tag tag-deleted">已刪除</span>' : ''}</td>
+      <td>${d.project}</td>
+      <td>${d.subject}</td>
+      <td>${d.created_by_name || '—'}</td>
+      <td>${isDeleted ? '<span class="tag tag-deleted">已刪除</span>' : '<span class="tag action-created">正常</span>'}</td>
+      <td style="font-size:.78rem;">
+        ${actionLabel(d.last_action)} ${d.last_action_name || '—'}<br>
+        <span style="color:var(--ink-light);">${fmtDate(d.last_action_at)}</span>
+      </td>
+      <td class="row-actions">
+        ${canEdit && !isDeleted ? `<button class="btn btn-ghost" style="font-size:.8rem;padding:4px 8px;"
+          data-id="${d.id}" onclick="openEditSubject(this.dataset.id)">編輯</button>` : ''}
+        ${canEdit && !isDeleted ? `<button class="btn btn-danger" style="font-size:.8rem;padding:4px 8px;"
+          data-id="${d.id}" onclick="doDeleteDoc(this.dataset.id)">刪除</button>` : ''}
+        ${canEdit && isDeleted ? `<button class="btn btn-warning" style="font-size:.8rem;padding:4px 8px;"
+          data-id="${d.id}" onclick="doRestoreDoc(this.dataset.id)">恢復</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openEditSubject(id) {
+  const d = docListDataMap[id];
+  if (!d) return;
+  editingDocId = id;
+  document.getElementById('edit-doc-number').value = d.full_number;
+  document.getElementById('edit-doc-subject').value = d.subject;
+  hideAlert('edit-subject-error');
+  document.getElementById('modal-edit-subject').classList.add('show');
+}
+function closeEditSubjectModal() { document.getElementById('modal-edit-subject').classList.remove('show'); }
+async function confirmEditSubject() {
+  const subject = document.getElementById('edit-doc-subject').value.trim();
+  if (!subject) { showAlert('edit-subject-error', '請輸入發文主旨'); return; }
+  openConfirmModal('確認編輯', '確定要儲存此發文主旨的修改？', async () => {
+    closeEditSubjectModal();
+    const res = await api(`/api/documents/${editingDocId}`, { method: 'PATCH', body: { subject } });
+    if (!res.ok) { showAlert('doclist-error', res.data?.error || '編輯失敗'); return; }
+    showAlert('doclist-success', '發文主旨已更新', 'success');
+    loadDocList();
+  });
+}
+function doDeleteDoc(id) {
+  const d = docListDataMap[id];
+  openConfirmModal('確認刪除', `確定要刪除文號「${d.full_number}」？刪除後仍可恢復。`, async () => {
+    const res = await api(`/api/documents/${id}/delete`, { method: 'POST' });
+    if (!res.ok) { showAlert('doclist-error', res.data?.error || '刪除失敗'); return; }
+    showAlert('doclist-success', '已標記為刪除', 'success');
+    loadDocList();
+  });
+}
+function doRestoreDoc(id) {
+  const d = docListDataMap[id];
+  openConfirmModal('確認恢復', `確定要恢復文號「${d.full_number}」？`, async () => {
+    const res = await api(`/api/documents/${id}/restore`, { method: 'POST' });
+    if (!res.ok) { showAlert('doclist-error', res.data?.error || '恢復失敗'); return; }
+    showAlert('doclist-success', '已恢復', 'success');
+    loadDocList();
+  });
+}
+
+// ══ 個人設定 ══
+function loadProfile() {
+  document.getElementById('profile-name').value = currentUser.name || '';
+  document.getElementById('profile-account').value = currentUser.account || '';
+  document.getElementById('profile-email').value = currentUser.email || '';
+  ['profile-old-pw','profile-new-pw','profile-confirm-pw'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.type = 'password'; }
+  });
+  document.querySelectorAll('#page-profile .pw-toggle').forEach(b => b.textContent = '👁');
+}
+async function saveProfile() {
+  hideAlert('profile-error'); hideAlert('profile-success');
+  const name = document.getElementById('profile-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  const oldPw = document.getElementById('profile-old-pw').value;
+  const newPw = document.getElementById('profile-new-pw').value;
+  const confirmPw = document.getElementById('profile-confirm-pw').value;
+  if (!name || !email) { showAlert('profile-error', '姓名及信箱為必填'); return; }
+  const body = { name, email, auth_id: currentUser.auth_id };
+  if (oldPw || newPw || confirmPw) {
+    if (oldPw !== currentUser.password) { showAlert('profile-error', '舊密碼不正確'); return; }
+    if (!newPw) { showAlert('profile-error', '請輸入新密碼'); return; }
+    if (newPw !== confirmPw) { showAlert('profile-error', '兩次新密碼不一致'); return; }
+    body.new_password = newPw;
+  }
+  const res = await api('/api/profile', { method: 'PUT', body });
+  if (!res.ok) { showAlert('profile-error', res.data?.error || '儲存失敗'); return; }
+  Object.assign(currentUser, { name, email });
+  if (body.new_password) currentUser.password = body.new_password;
+  sessionStorage.setItem('user', JSON.stringify(currentUser));
+  document.getElementById('header-user').textContent =
+    `${currentUser.name}（${currentUser.role === 'admin' ? '管理者' : '一般使用者'}）`;
+  showAlert('profile-success', '個人設定已儲存', 'success');
+}
+
+// ══ Session 恢復 ══
+(function() {
+  const savedToken = sessionStorage.getItem('token');
+  const savedUser = sessionStorage.getItem('user');
+  if (savedToken && savedUser) {
+    try {
+      accessToken = savedToken;
+      currentUser = JSON.parse(savedUser);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    } catch (e) { sessionStorage.clear(); }
+  }
+})();
+</script>
+</body>
+</html>
